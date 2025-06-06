@@ -1,19 +1,10 @@
-import React, { useState } from 'react';
-import { Pin, Edit, Trash2, MoreVertical, Palette, Paperclip } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
+import React from 'react';
+import { Pin, Paperclip } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { Note } from '@/types/Note';
+import NoteActions from './NoteActions';
+import { formatDate, truncateContent } from '@/utils/noteFormatters';
 
 interface NoteCardProps {
   note: Note;
@@ -25,17 +16,6 @@ interface NoteCardProps {
   onColorChange: (color: string) => void;
 }
 
-const colors = [
-  '#3B82F6', // Blue
-  '#EF4444', // Red
-  '#10B981', // Green
-  '#F59E0B', // Yellow
-  '#8B5CF6', // Purple
-  '#EC4899', // Pink
-  '#6B7280', // Gray
-  '#F97316', // Orange
-];
-
 const NoteCard: React.FC<NoteCardProps> = ({
   note,
   isSelected,
@@ -45,31 +25,6 @@ const NoteCard: React.FC<NoteCardProps> = ({
   onTogglePin,
   onColorChange,
 }) => {
-  const [colorPopoverOpen, setColorPopoverOpen] = useState(false);
-
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const truncateContent = (content: string, maxLength: number = 100) => {
-    if (content.length <= maxLength) return content;
-    return content.substring(0, maxLength) + '...';
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
   return (
     <Card 
       className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
@@ -89,70 +44,13 @@ const NoteCard: React.FC<NoteCardProps> = ({
             </h3>
           </div>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
-                <Edit className="h-4 w-4 mr-2" />
-                Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePin(); }}>
-                <Pin className="h-4 w-4 mr-2" />
-                {note.isPinned ? 'Desafixar' : 'Fixar'}
-              </DropdownMenuItem>
-              <Popover open={colorPopoverOpen} onOpenChange={setColorPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <DropdownMenuItem 
-                    onSelect={(e) => e.preventDefault()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setColorPopoverOpen(true);
-                    }}
-                  >
-                    <Palette className="h-4 w-4 mr-2" />
-                    Cor
-                  </DropdownMenuItem>
-                </PopoverTrigger>
-                <PopoverContent 
-                  className="w-48 p-3" 
-                  align="end"
-                  onInteractOutside={() => setColorPopoverOpen(false)}
-                  onEscapeKeyDown={() => setColorPopoverOpen(false)}
-                >
-                  <div className="grid grid-cols-4 gap-2">
-                    {colors.map((color) => (
-                      <button
-                        key={color}
-                        className="w-8 h-8 rounded-full border-2 border-gray-200 hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-primary"
-                        style={{ backgroundColor: color }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onColorChange(color);
-                          setColorPopoverOpen(false);
-                        }}
-                      />
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <DropdownMenuItem 
-                className="text-destructive"
-                onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Excluir
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <NoteActions
+            note={note}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onTogglePin={onTogglePin}
+            onColorChange={onColorChange}
+          />
         </div>
 
         {note.coverImage && (
