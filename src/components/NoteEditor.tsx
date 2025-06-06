@@ -7,8 +7,9 @@ import AttachmentManager from '@/components/AttachmentManager';
 import NoteEditorHeader from '@/components/NoteEditorHeader';
 import NoteCoverImage from '@/components/NoteCoverImage';
 import NoteEditorContent from '@/components/NoteEditorContent';
-import { Note, NoteAttachment } from '@/types/Note';
+import { Note } from '@/types/Note';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NoteEditorProps {
   note: Note;
@@ -27,8 +28,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 }) => {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
-  const [coverImage, setCoverImage] = useState(note.coverImage);
-  const [attachments, setAttachments] = useState<NoteAttachment[]>(note.attachments || []);
+  const [coverImage, setCoverImage] = useState(note.cover_image_url);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const { toast } = useToast();
@@ -36,8 +36,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   useEffect(() => {
     setTitle(note.title);
     setContent(note.content);
-    setCoverImage(note.coverImage);
-    setAttachments(note.attachments || []);
+    setCoverImage(note.cover_image_url);
   }, [note]);
 
   const handleSave = () => {
@@ -53,47 +52,54 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     onSave({
       title: title.trim(),
       content: content.trim(),
-      coverImage,
-      attachments,
+      cover_image_url: coverImage,
     });
     onCancel();
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB
-        toast({
-          title: "Arquivo muito grande",
-          description: "A imagem deve ter no máximo 5MB.",
-          variant: "destructive",
-        });
-        return;
-      }
+    if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setCoverImage(result);
-      };
-      reader.readAsDataURL(file);
+    if (file.size > 5 * 1024 * 1024) { // 5MB
+      toast({
+        title: "Arquivo muito grande",
+        description: "A imagem deve ter no máximo 5MB.",
+        variant: "destructive",
+      });
+      return;
     }
-  };
 
-  const handleAddAttachment = (attachment: NoteAttachment) => {
-    setAttachments(prev => [...prev, attachment]);
-    toast({
-      title: "Anexo adicionado",
-      description: `${attachment.name} foi anexado à nota.`,
-    });
-  };
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${note.user_id}/covers/${note.id}/${Date.now()}.${fileExt}`;
 
-  const handleRemoveAttachment = (attachmentId: string) => {
-    setAttachments(prev => prev.filter(att => att.id !== attachmentId));
-    toast({
-      title: "Anexo removido",
-      description: "O anexo foi removido da nota.",
-    });
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('note-attachments')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('note-attachments')
+        .getPublicUrl(fileName);
+
+      setCoverImage(publicUrl);
+      
+      toast({
+        title: "Imagem carregada",
+        description: "A imagem de capa foi adicionada com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Erro ao carregar imagem",
+        description: "Não foi possível carregar a imagem.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -115,15 +121,14 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
       <CardContent className="pt-0 space-y-4">
         <NoteCoverImage
-          coverImage={isEditing ? coverImage : note.coverImage}
+          coverImage={isEditing ? coverImage : note.cover_image_url}
           isEditing={isEditing}
           onRemoveCover={() => setCoverImage(null)}
         />
 
         <AttachmentManager
-          attachments={attachments}
-          onAddAttachment={handleAddAttachment}
-          onRemoveAttachment={handleRemoveAttachment}
+          noteId={note.id}
+          attachments={note.attachments || []}
           isEditing={isEditing}
         />
 
@@ -135,13 +140,13 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       </CardContent>
 
       <ShareModal
-        note={{ ...note, attachments }}
+        note={note}
         isOpen={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
       />
 
       <DownloadModal
-        note={{ ...note, attachments }}
+        note={note}
         isOpen={downloadModalOpen}
         onClose={() => setDownloadModalOpen(false)}
       />

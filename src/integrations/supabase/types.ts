@@ -9,7 +9,118 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      note_attachments: {
+        Row: {
+          file_size: number
+          file_type: string
+          file_url: string
+          id: string
+          name: string
+          note_id: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          file_size: number
+          file_type: string
+          file_url: string
+          id?: string
+          name: string
+          note_id: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          name?: string
+          note_id?: string
+          uploaded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_attachments_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_audit_log: {
+        Row: {
+          created_at: string | null
+          event_type: Database["public"]["Enums"]["audit_event_type"]
+          id: string
+          new_values: Json | null
+          note_id: string
+          old_values: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: Database["public"]["Enums"]["audit_event_type"]
+          id?: string
+          new_values?: Json | null
+          note_id: string
+          old_values?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: Database["public"]["Enums"]["audit_event_type"]
+          id?: string
+          new_values?: Json | null
+          note_id?: string
+          old_values?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_audit_log_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notes: {
+        Row: {
+          color: string | null
+          content: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          id: string
+          is_pinned: boolean | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          content?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_pinned?: boolean | null
+          title?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          content?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_pinned?: boolean | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +129,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      audit_event_type:
+        | "created"
+        | "updated"
+        | "deleted"
+        | "pinned"
+        | "unpinned"
+        | "color_changed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +250,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      audit_event_type: [
+        "created",
+        "updated",
+        "deleted",
+        "pinned",
+        "unpinned",
+        "color_changed",
+      ],
+    },
   },
 } as const

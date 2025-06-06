@@ -36,7 +36,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2 flex-1">
-            {note.isPinned && (
+            {note.is_pinned && (
               <Pin className="h-4 w-4 text-primary" fill="currentColor" />
             )}
             <h3 className="font-semibold text-sm truncate flex-1">
@@ -53,10 +53,10 @@ const NoteCard: React.FC<NoteCardProps> = ({
           />
         </div>
 
-        {note.coverImage && (
+        {note.cover_image_url && (
           <div className="mb-2">
             <img
-              src={note.coverImage}
+              src={note.cover_image_url}
               alt="Capa da nota"
               className="w-full h-20 object-cover rounded"
             />
@@ -92,9 +92,9 @@ const NoteCard: React.FC<NoteCardProps> = ({
         )}
 
         <div className="flex justify-between items-center text-xs text-muted-foreground">
-          <span>Criado: {formatDate(note.createdAt)}</span>
-          {note.updatedAt.getTime() !== note.createdAt.getTime() && (
-            <span>Editado: {formatDate(note.updatedAt)}</span>
+          <span>Criado: {formatDate(note.created_at)}</span>
+          {note.updated_at.getTime() !== note.created_at.getTime() && (
+            <span>Editado: {formatDate(note.updated_at)}</span>
           )}
         </div>
       </CardContent>

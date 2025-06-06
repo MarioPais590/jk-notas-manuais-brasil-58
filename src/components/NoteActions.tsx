@@ -63,7 +63,7 @@ const NoteActions: React.FC<NoteActionsProps> = ({
           </DropdownMenuItem>
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePin(); }}>
             <Pin className="h-4 w-4 mr-2" />
-            {note.isPinned ? 'Desafixar' : 'Fixar'}
+            {note.is_pinned ? 'Desafixar' : 'Fixar'}
           </DropdownMenuItem>
           <DropdownMenuItem 
             className="text-destructive"

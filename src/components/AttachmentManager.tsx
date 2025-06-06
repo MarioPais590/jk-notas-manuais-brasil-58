@@ -1,28 +1,27 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Paperclip, X, Download, File, FileText, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { NoteAttachment } from '@/types/Note';
 import { useToast } from '@/hooks/use-toast';
+import { useSupabaseNotes } from '@/hooks/useSupabaseNotes';
 
 interface AttachmentManagerProps {
+  noteId: string;
   attachments: NoteAttachment[];
-  onAddAttachment: (attachment: NoteAttachment) => void;
-  onRemoveAttachment: (attachmentId: string) => void;
   isEditing: boolean;
 }
 
 const AttachmentManager: React.FC<AttachmentManagerProps> = ({
+  noteId,
   attachments,
-  onAddAttachment,
-  onRemoveAttachment,
   isEditing,
 }) => {
   const { toast } = useToast();
+  const { uploadAttachment, removeAttachment } = useSupabaseNotes();
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -57,32 +56,29 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      const attachment: NoteAttachment = {
-        id: Date.now().toString(),
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        data: result,
-        uploadedAt: new Date(),
-      };
-      onAddAttachment(attachment);
-    };
-    reader.readAsDataURL(file);
+    const result = await uploadAttachment(noteId, file);
+    if (result) {
+      toast({
+        title: "Anexo adicionado",
+        description: `${file.name} foi anexado à nota.`,
+      });
+    }
 
     // Limpar o input
     event.target.value = '';
   };
 
+  const handleRemoveAttachment = async (attachmentId: string) => {
+    await removeAttachment(attachmentId, noteId);
+    toast({
+      title: "Anexo removido",
+      description: "O anexo foi removido da nota.",
+    });
+  };
+
   const downloadAttachment = (attachment: NoteAttachment) => {
-    const link = document.createElement('a');
-    link.href = attachment.data;
-    link.download = attachment.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Abrir o URL em uma nova aba para download
+    window.open(attachment.file_url, '_blank');
   };
 
   const getFileIcon = (type: string) => {
@@ -130,11 +126,11 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
               <Card key={attachment.id} className="p-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    {getFileIcon(attachment.type)}
+                    {getFileIcon(attachment.file_type)}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{attachment.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatFileSize(attachment.size)}
+                        {formatFileSize(attachment.file_size)}
                       </p>
                     </div>
                   </div>
@@ -151,7 +147,7 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onRemoveAttachment(attachment.id)}
+                        onClick={() => handleRemoveAttachment(attachment.id)}
                         className="h-6 w-6 p-0 text-destructive hover:text-destructive"
                       >
                         <X className="h-3 w-3" />
