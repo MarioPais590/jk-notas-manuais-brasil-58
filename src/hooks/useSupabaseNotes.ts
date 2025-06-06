@@ -14,6 +14,7 @@ export function useSupabaseNotes() {
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session?.user?.email);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchNotes();
@@ -24,6 +25,7 @@ export function useSupabaseNotes() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', event, session?.user?.email);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchNotes();
@@ -58,10 +60,14 @@ export function useSupabaseNotes() {
   });
 
   const fetchNotes = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user for fetchNotes');
+      return;
+    }
 
     try {
       setLoading(true);
+      console.log('Fetching notes for user:', user.id);
       
       // Fetch notes with attachments
       const { data: notesData, error: notesError } = await supabase
@@ -73,12 +79,18 @@ export function useSupabaseNotes() {
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
-      if (notesError) throw notesError;
+      if (notesError) {
+        console.error('Error fetching notes:', notesError);
+        throw notesError;
+      }
+
+      console.log('Fetched notes data:', notesData);
 
       const convertedNotes = notesData?.map(note => 
         convertDatabaseNote(note, note.note_attachments || [])
       ) || [];
 
+      console.log('Converted notes:', convertedNotes);
       setNotes(convertedNotes);
     } catch (error) {
       console.error('Error fetching notes:', error);
@@ -93,9 +105,13 @@ export function useSupabaseNotes() {
   };
 
   const createNewNote = async (): Promise<Note | null> => {
-    if (!user) return null;
+    if (!user) {
+      console.log('No user for createNewNote');
+      return null;
+    }
 
     try {
+      console.log('Creating new note for user:', user.id);
       const { data, error } = await supabase
         .from('notes')
         .insert({
@@ -107,8 +123,12 @@ export function useSupabaseNotes() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating note:', error);
+        throw error;
+      }
 
+      console.log('Created note:', data);
       const newNote = convertDatabaseNote(data);
       setNotes(prev => [newNote, ...prev]);
 
@@ -130,9 +150,13 @@ export function useSupabaseNotes() {
   };
 
   const saveNote = async (noteId: string, noteData: Partial<Note>): Promise<Note | null> => {
-    if (!user) return null;
+    if (!user) {
+      console.log('No user for saveNote');
+      return null;
+    }
 
     try {
+      console.log('Saving note:', noteId, noteData);
       const { data, error } = await supabase
         .from('notes')
         .update({
@@ -145,8 +169,12 @@ export function useSupabaseNotes() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving note:', error);
+        throw error;
+      }
 
+      console.log('Saved note:', data);
       const updatedNote = convertDatabaseNote(data);
       
       setNotes(prev => prev.map(note => 
@@ -174,13 +202,17 @@ export function useSupabaseNotes() {
     if (!user) return;
 
     try {
+      console.log('Deleting note:', noteId);
       const { error } = await supabase
         .from('notes')
         .delete()
         .eq('id', noteId)
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting note:', error);
+        throw error;
+      }
 
       setNotes(prev => prev.filter(note => note.id !== noteId));
 
@@ -206,6 +238,7 @@ export function useSupabaseNotes() {
       const note = notes.find(n => n.id === noteId);
       if (!note) return false;
 
+      console.log('Toggling pin for note:', noteId, 'current:', note.is_pinned);
       const { data, error } = await supabase
         .from('notes')
         .update({ is_pinned: !note.is_pinned })
@@ -214,7 +247,10 @@ export function useSupabaseNotes() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error toggling pin:', error);
+        throw error;
+      }
 
       const updatedNote = convertDatabaseNote(data);
       setNotes(prev => prev.map(n => n.id === noteId ? { ...n, ...updatedNote } : n));
@@ -235,6 +271,7 @@ export function useSupabaseNotes() {
     if (!user) return;
 
     try {
+      console.log('Updating color for note:', noteId, 'to:', color);
       const { data, error } = await supabase
         .from('notes')
         .update({ color })
@@ -243,7 +280,10 @@ export function useSupabaseNotes() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating color:', error);
+        throw error;
+      }
 
       const updatedNote = convertDatabaseNote(data);
       setNotes(prev => prev.map(note => 
@@ -260,9 +300,13 @@ export function useSupabaseNotes() {
   };
 
   const uploadAttachment = async (noteId: string, file: File): Promise<NoteAttachment | null> => {
-    if (!user) return null;
+    if (!user) {
+      console.log('No user for uploadAttachment');
+      return null;
+    }
 
     try {
+      console.log('Uploading attachment for note:', noteId, 'file:', file.name);
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${noteId}/${Date.now()}.${fileExt}`;
 
@@ -271,12 +315,19 @@ export function useSupabaseNotes() {
         .from('note-attachments')
         .upload(fileName, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('File uploaded:', uploadData);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('note-attachments')
         .getPublicUrl(fileName);
+
+      console.log('Public URL:', publicUrl);
 
       // Save attachment metadata
       const { data: attachmentData, error: attachmentError } = await supabase
@@ -291,7 +342,12 @@ export function useSupabaseNotes() {
         .select()
         .single();
 
-      if (attachmentError) throw attachmentError;
+      if (attachmentError) {
+        console.error('Attachment metadata error:', attachmentError);
+        throw attachmentError;
+      }
+
+      console.log('Attachment metadata saved:', attachmentData);
 
       const newAttachment: NoteAttachment = {
         id: attachmentData.id,
@@ -326,6 +382,8 @@ export function useSupabaseNotes() {
     if (!user) return;
 
     try {
+      console.log('Removing attachment:', attachmentId);
+      
       // Get attachment info first
       const { data: attachment, error: getError } = await supabase
         .from('note_attachments')
@@ -333,18 +391,26 @@ export function useSupabaseNotes() {
         .eq('id', attachmentId)
         .single();
 
-      if (getError) throw getError;
+      if (getError) {
+        console.error('Get attachment error:', getError);
+        throw getError;
+      }
 
       // Extract file path from URL
-      const fileName = attachment.file_url.split('/').pop();
+      const urlParts = attachment.file_url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
       const filePath = `${user.id}/${noteId}/${fileName}`;
+
+      console.log('Deleting file from storage:', filePath);
 
       // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('note-attachments')
         .remove([filePath]);
 
-      if (storageError) console.warn('Storage deletion error:', storageError);
+      if (storageError) {
+        console.warn('Storage deletion error:', storageError);
+      }
 
       // Delete from database
       const { error: dbError } = await supabase
@@ -352,7 +418,10 @@ export function useSupabaseNotes() {
         .delete()
         .eq('id', attachmentId);
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database deletion error:', dbError);
+        throw dbError;
+      }
 
       // Update local state
       setNotes(prev => prev.map(note => 
@@ -361,6 +430,7 @@ export function useSupabaseNotes() {
           : note
       ));
 
+      console.log('Attachment removed successfully');
     } catch (error) {
       console.error('Error removing attachment:', error);
       toast({

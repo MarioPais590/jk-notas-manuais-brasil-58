@@ -49,6 +49,12 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       return;
     }
 
+    console.log('Saving note with data:', {
+      title: title.trim(),
+      content: content.trim(),
+      cover_image_url: coverImage,
+    });
+
     onSave({
       title: title.trim(),
       content: content.trim(),
@@ -71,6 +77,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     }
 
     try {
+      console.log('Uploading cover image for note:', note.id);
       const fileExt = file.name.split('.').pop();
       const fileName = `${note.user_id}/covers/${note.id}/${Date.now()}.${fileExt}`;
 
@@ -79,13 +86,19 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         .from('note-attachments')
         .upload(fileName, file);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Cover image upload error:', error);
+        throw error;
+      }
+
+      console.log('Cover image uploaded:', data);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('note-attachments')
         .getPublicUrl(fileName);
 
+      console.log('Cover image public URL:', publicUrl);
       setCoverImage(publicUrl);
       
       toast({

@@ -25,6 +25,8 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    console.log('File selected for upload:', file.name, file.size, file.type);
+
     // Verificar tamanho do arquivo (máximo 10MB)
     if (file.size > 10 * 1024 * 1024) {
       toast({
@@ -56,8 +58,10 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
       return;
     }
 
+    console.log('Starting file upload for note:', noteId);
     const result = await uploadAttachment(noteId, file);
     if (result) {
+      console.log('File uploaded successfully:', result);
       toast({
         title: "Anexo adicionado",
         description: `${file.name} foi anexado à nota.`,
@@ -69,6 +73,7 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
   };
 
   const handleRemoveAttachment = async (attachmentId: string) => {
+    console.log('Removing attachment:', attachmentId);
     await removeAttachment(attachmentId, noteId);
     toast({
       title: "Anexo removido",
@@ -77,6 +82,7 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
   };
 
   const downloadAttachment = (attachment: NoteAttachment) => {
+    console.log('Downloading attachment:', attachment.name, attachment.file_url);
     // Abrir o URL em uma nova aba para download
     window.open(attachment.file_url, '_blank');
   };
