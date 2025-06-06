@@ -23,15 +23,28 @@ const NotesManager: React.FC<NotesManagerProps> = ({ onCreateNote }) => {
     updateNoteColor,
     filterAndSortNotes,
     createNewNote,
+    loading,
+    user,
   } = useNotes();
 
   const filteredNotes = filterAndSortNotes(searchTerm);
 
   const handleCreateNote = async () => {
-    const newNote = await createNewNote();
-    if (newNote) {
-      setSelectedNote(newNote);
-      setIsEditing(true);
+    console.log('Creating new note...');
+    if (!user) {
+      console.log('No user found, cannot create note');
+      return;
+    }
+
+    try {
+      const newNote = await createNewNote();
+      console.log('New note created:', newNote);
+      if (newNote) {
+        setSelectedNote(newNote);
+        setIsEditing(true);
+      }
+    } catch (error) {
+      console.error('Error creating note:', error);
     }
   };
 
@@ -61,6 +74,29 @@ const NotesManager: React.FC<NotesManagerProps> = ({ onCreateNote }) => {
       setSelectedNote(updatedNote);
     }
   };
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-sm text-muted-foreground">Carregando notas...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if user is not authenticated
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <p className="text-muted-foreground">Faça login para acessar suas notas.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

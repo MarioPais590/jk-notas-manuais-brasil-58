@@ -1,7 +1,9 @@
 
 import React from 'react';
-import { Plus, Moon, Sun } from 'lucide-react';
+import { Plus, Moon, Sun, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface AppHeaderProps {
   darkMode: boolean;
@@ -14,6 +16,21 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   onToggleTheme,
   onCreateNote,
 }) => {
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error: any) {
+      toast({
+        title: "Erro ao fazer logout",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <header className="border-b bg-card shadow-sm">
       <div className="container mx-auto px-4 py-4">
@@ -30,6 +47,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               className="h-9 w-9"
             >
               {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleLogout}
+              className="h-9 w-9"
+            >
+              <LogOut className="h-4 w-4" />
             </Button>
             <Button onClick={onCreateNote} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />

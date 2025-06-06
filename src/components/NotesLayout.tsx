@@ -1,31 +1,33 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { useTheme } from '@/hooks/useTheme';
 import AppHeader from '@/components/AppHeader';
 import NotesManager from '@/components/NotesManager';
-import { useTheme } from '@/hooks/useTheme';
+import AuthWrapper from '@/components/AuthWrapper';
 
-const NotesLayout: React.FC = () => {
+const NotesLayout = () => {
   const { darkMode, toggleTheme } = useTheme();
 
-  const handleCreateNote = () => {
-    // Esta função será substituída pela lógica interna do NotesManager
-    console.log('Create note triggered from header');
-  };
-
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'dark' : ''}`}>
-      <div className="bg-background text-foreground min-h-screen">
-        <AppHeader
-          darkMode={darkMode}
-          onToggleTheme={toggleTheme}
-          onCreateNote={handleCreateNote}
-        />
-
-        <div className="container mx-auto px-4 py-6">
-          <NotesManager onCreateNote={handleCreateNote} />
+    <AuthWrapper>
+      <div className={`min-h-screen transition-colors ${darkMode ? 'dark' : ''}`}>
+        <div className="bg-background text-foreground">
+          <AppHeader
+            darkMode={darkMode}
+            onToggleTheme={toggleTheme}
+            onCreateNote={() => {
+              console.log('Create note triggered from header');
+              // Esta função será sobrescrita pelo NotesManager
+            }}
+          />
+          <main className="container mx-auto px-4 py-6">
+            <NotesManager 
+              onCreateNote={() => console.log('Default create note')}
+            />
+          </main>
         </div>
       </div>
-    </div>
+    </AuthWrapper>
   );
 };
 
