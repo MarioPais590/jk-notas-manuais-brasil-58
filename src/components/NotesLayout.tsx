@@ -1,17 +1,15 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import AppHeader from '@/components/AppHeader';
 import NotesManager from '@/components/NotesManager';
 import { useTheme } from '@/hooks/useTheme';
-import { useNotes } from '@/hooks/useNotes';
-import { Note } from '@/types/Note';
 
 const NotesLayout: React.FC = () => {
   const { darkMode, toggleTheme } = useTheme();
-  const { createNewNote } = useNotes();
 
   const handleCreateNote = () => {
-    createNewNote();
+    // Esta função será substituída pela lógica interna do NotesManager
+    console.log('Create note triggered from header');
   };
 
   return (

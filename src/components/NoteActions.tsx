@@ -32,21 +32,6 @@ const NoteActions: React.FC<NoteActionsProps> = ({
   const handleColorSelect = (color: string) => {
     onColorChange(color);
     setColorPopoverOpen(false);
-    setDropdownOpen(false);
-  };
-
-  const handleDropdownChange = (open: boolean) => {
-    setDropdownOpen(open);
-    if (!open) {
-      setColorPopoverOpen(false);
-    }
-  };
-
-  const handleColorPickerClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDropdownOpen(false);
-    setColorPopoverOpen(true);
   };
 
   return (
@@ -59,7 +44,7 @@ const NoteActions: React.FC<NoteActionsProps> = ({
       
       <DropdownMenu 
         open={dropdownOpen} 
-        onOpenChange={handleDropdownChange}
+        onOpenChange={setDropdownOpen}
       >
         <DropdownMenuTrigger asChild>
           <Button
@@ -79,10 +64,6 @@ const NoteActions: React.FC<NoteActionsProps> = ({
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePin(); }}>
             <Pin className="h-4 w-4 mr-2" />
             {note.isPinned ? 'Desafixar' : 'Fixar'}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleColorPickerClick}>
-            <Palette className="h-4 w-4 mr-2" />
-            Cor
           </DropdownMenuItem>
           <DropdownMenuItem 
             className="text-destructive"

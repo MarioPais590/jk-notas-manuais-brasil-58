@@ -23,13 +23,14 @@ export function useNotes() {
         setNotes(notesWithAttachments);
       } catch (error) {
         console.error('Erro ao carregar notas:', error);
+        setNotes([]);
       }
     }
   }, []);
 
   // Salvar notas automaticamente
   useEffect(() => {
-    if (notes.length > 0) {
+    if (notes.length >= 0) {
       localStorage.setItem(APP_CONFIG.STORAGE_KEYS.NOTES, JSON.stringify(notes));
     }
   }, [notes]);

@@ -22,9 +22,16 @@ const NotesManager: React.FC<NotesManagerProps> = ({ onCreateNote }) => {
     togglePinNote,
     updateNoteColor,
     filterAndSortNotes,
+    createNewNote,
   } = useNotes();
 
   const filteredNotes = filterAndSortNotes(searchTerm);
+
+  const handleCreateNote = () => {
+    const newNote = createNewNote();
+    setSelectedNote(newNote);
+    setIsEditing(true);
+  };
 
   const handleNoteSelect = (note: Note) => {
     setSelectedNote(note);
@@ -70,7 +77,7 @@ const NotesManager: React.FC<NotesManagerProps> = ({ onCreateNote }) => {
           onNoteDelete={handleNoteDelete}
           onNoteTogglePin={togglePinNote}
           onNoteColorChange={updateNoteColor}
-          onCreateNote={onCreateNote}
+          onCreateNote={handleCreateNote}
         />
       </div>
 
@@ -85,7 +92,7 @@ const NotesManager: React.FC<NotesManagerProps> = ({ onCreateNote }) => {
             onCancel={() => setIsEditing(false)}
           />
         ) : (
-          <EmptyNoteEditor onCreateNote={onCreateNote} />
+          <EmptyNoteEditor onCreateNote={handleCreateNote} />
         )}
       </div>
     </div>
