@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Save, Edit, X, Download, Share2, Image } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import ShareModal from '@/components/ShareModal';
 import DownloadModal from '@/components/DownloadModal';
 import AttachmentManager from '@/components/AttachmentManager';
+import NoteEditorHeader from '@/components/NoteEditorHeader';
+import NoteCoverImage from '@/components/NoteCoverImage';
+import NoteEditorContent from '@/components/NoteEditorContent';
 import { Note, NoteAttachment } from '@/types/Note';
 import { useToast } from '@/hooks/use-toast';
 
@@ -97,102 +96,29 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     });
   };
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   return (
     <Card className="h-full">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            {isEditing ? (
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="text-lg font-semibold border-none px-0 focus-visible:ring-0"
-                placeholder="Título da nota"
-              />
-            ) : (
-              <h2 className="text-lg font-semibold">{note.title}</h2>
-            )}
-            <p className="text-sm text-muted-foreground mt-1">
-              Criado em {formatDate(note.createdAt)}
-              {note.updatedAt.getTime() !== note.createdAt.getTime() && (
-                <span> • Editado em {formatDate(note.updatedAt)}</span>
-              )}
-            </p>
-          </div>
-          
-          <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="cover-upload"
-                />
-                <label htmlFor="cover-upload">
-                  <Button variant="outline" size="sm" asChild>
-                    <span className="cursor-pointer">
-                      <Image className="h-4 w-4" />
-                    </span>
-                  </Button>
-                </label>
-                <Button variant="outline" size="sm" onClick={onCancel}>
-                  <X className="h-4 w-4" />
-                </Button>
-                <Button size="sm" onClick={handleSave}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Salvar
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="outline" size="sm" onClick={() => setShareModalOpen(true)}>
-                  <Share2 className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setDownloadModalOpen(true)}>
-                  <Download className="h-4 w-4" />
-                </Button>
-                <Button size="sm" onClick={onEdit}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
+        <NoteEditorHeader
+          note={note}
+          isEditing={isEditing}
+          title={title}
+          onTitleChange={setTitle}
+          onEdit={onEdit}
+          onCancel={onCancel}
+          onSave={handleSave}
+          onImageUpload={handleImageUpload}
+          onShareModalOpen={() => setShareModalOpen(true)}
+          onDownloadModalOpen={() => setDownloadModalOpen(true)}
+        />
       </CardHeader>
 
       <CardContent className="pt-0 space-y-4">
-        {(isEditing && coverImage) || (!isEditing && note.coverImage) ? (
-          <div>
-            <img
-              src={isEditing ? coverImage! : note.coverImage!}
-              alt="Capa da nota"
-              className="w-full max-h-48 object-cover rounded-lg"
-            />
-            {isEditing && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={() => setCoverImage(null)}
-              >
-                Remover Capa
-              </Button>
-            )}
-          </div>
-        ) : null}
+        <NoteCoverImage
+          coverImage={isEditing ? coverImage : note.coverImage}
+          isEditing={isEditing}
+          onRemoveCover={() => setCoverImage(null)}
+        />
 
         <AttachmentManager
           attachments={attachments}
@@ -201,22 +127,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
           isEditing={isEditing}
         />
 
-        {isEditing ? (
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Escreva sua nota aqui..."
-            className="min-h-[300px] resize-none border-none px-0 focus-visible:ring-0"
-          />
-        ) : (
-          <div className="min-h-[300px] whitespace-pre-wrap text-sm leading-relaxed">
-            {note.content || (
-              <span className="text-muted-foreground italic">
-                Esta nota está vazia. Clique em "Editar" para adicionar conteúdo.
-              </span>
-            )}
-          </div>
-        )}
+        <NoteEditorContent
+          content={content}
+          isEditing={isEditing}
+          onContentChange={setContent}
+        />
       </CardContent>
 
       <ShareModal
