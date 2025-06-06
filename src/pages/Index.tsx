@@ -22,7 +22,14 @@ const Index = () => {
     if (savedNotes) {
       try {
         const parsedNotes = JSON.parse(savedNotes);
-        setNotes(parsedNotes);
+        // Garantir que todas as notas tenham o campo attachments
+        const notesWithAttachments = parsedNotes.map((note: any) => ({
+          ...note,
+          attachments: note.attachments || [],
+          createdAt: new Date(note.createdAt),
+          updatedAt: new Date(note.updatedAt),
+        }));
+        setNotes(notesWithAttachments);
       } catch (error) {
         console.error('Erro ao carregar notas:', error);
       }
@@ -63,6 +70,7 @@ const Index = () => {
       content: '',
       color: '#3B82F6',
       coverImage: null,
+      attachments: [],
       isPinned: false,
       createdAt: new Date(),
       updatedAt: new Date(),

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Pin, Edit, Trash2, MoreVertical, Palette } from 'lucide-react';
+import { Pin, Edit, Trash2, MoreVertical, Palette, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -63,6 +63,14 @@ const NoteCard: React.FC<NoteCardProps> = ({
     return content.substring(0, maxLength) + '...';
   };
 
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
     <Card 
       className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
@@ -115,18 +123,25 @@ const NoteCard: React.FC<NoteCardProps> = ({
                     Cor
                   </DropdownMenuItem>
                 </PopoverTrigger>
-                <PopoverContent className="w-48 p-2" align="end">
+                <PopoverContent 
+                  className="w-48 p-3" 
+                  align="end"
+                  onPointerDownOutside={() => setColorPopoverOpen(false)}
+                  onEscapeKeyDown={() => setColorPopoverOpen(false)}
+                >
                   <div className="grid grid-cols-4 gap-2">
                     {colors.map((color) => (
                       <button
                         key={color}
-                        className="w-8 h-8 rounded-full border-2 border-gray-200 hover:scale-110 transition-transform"
+                        className="w-8 h-8 rounded-full border-2 border-gray-200 hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{ backgroundColor: color }}
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
                           onColorChange(color);
                           setColorPopoverOpen(false);
                         }}
+                        onMouseDown={(e) => e.preventDefault()}
                       />
                     ))}
                   </div>
@@ -156,6 +171,30 @@ const NoteCard: React.FC<NoteCardProps> = ({
         <p className="text-sm text-muted-foreground mb-2 line-clamp-3">
           {truncateContent(note.content)}
         </p>
+
+        {note.attachments && note.attachments.length > 0 && (
+          <div className="mb-2">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+              <Paperclip className="h-3 w-3" />
+              {note.attachments.length} anexo{note.attachments.length > 1 ? 's' : ''}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {note.attachments.slice(0, 2).map((attachment) => (
+                <span
+                  key={attachment.id}
+                  className="text-xs bg-muted px-2 py-1 rounded truncate max-w-24"
+                >
+                  {attachment.name}
+                </span>
+              ))}
+              {note.attachments.length > 2 && (
+                <span className="text-xs text-muted-foreground">
+                  +{note.attachments.length - 2} mais
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="flex justify-between items-center text-xs text-muted-foreground">
           <span>Criado: {formatDate(note.createdAt)}</span>

@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import ShareModal from '@/components/ShareModal';
 import DownloadModal from '@/components/DownloadModal';
-import { Note } from '@/types/Note';
+import AttachmentManager from '@/components/AttachmentManager';
+import { Note, NoteAttachment } from '@/types/Note';
 import { useToast } from '@/hooks/use-toast';
 
 interface NoteEditorProps {
@@ -28,6 +29,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
   const [coverImage, setCoverImage] = useState(note.coverImage);
+  const [attachments, setAttachments] = useState<NoteAttachment[]>(note.attachments || []);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const { toast } = useToast();
@@ -36,6 +38,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     setTitle(note.title);
     setContent(note.content);
     setCoverImage(note.coverImage);
+    setAttachments(note.attachments || []);
   }, [note]);
 
   const handleSave = () => {
@@ -52,6 +55,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       title: title.trim(),
       content: content.trim(),
       coverImage,
+      attachments,
     });
     onCancel();
   };
@@ -75,6 +79,22 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleAddAttachment = (attachment: NoteAttachment) => {
+    setAttachments(prev => [...prev, attachment]);
+    toast({
+      title: "Anexo adicionado",
+      description: `${attachment.name} foi anexado à nota.`,
+    });
+  };
+
+  const handleRemoveAttachment = (attachmentId: string) => {
+    setAttachments(prev => prev.filter(att => att.id !== attachmentId));
+    toast({
+      title: "Anexo removido",
+      description: "O anexo foi removido da nota.",
+    });
   };
 
   const formatDate = (date: Date) => {
@@ -153,9 +173,9 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 space-y-4">
         {(isEditing && coverImage) || (!isEditing && note.coverImage) ? (
-          <div className="mb-4">
+          <div>
             <img
               src={isEditing ? coverImage! : note.coverImage!}
               alt="Capa da nota"
@@ -174,15 +194,22 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
           </div>
         ) : null}
 
+        <AttachmentManager
+          attachments={attachments}
+          onAddAttachment={handleAddAttachment}
+          onRemoveAttachment={handleRemoveAttachment}
+          isEditing={isEditing}
+        />
+
         {isEditing ? (
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Escreva sua nota aqui..."
-            className="min-h-[400px] resize-none border-none px-0 focus-visible:ring-0"
+            className="min-h-[300px] resize-none border-none px-0 focus-visible:ring-0"
           />
         ) : (
-          <div className="min-h-[400px] whitespace-pre-wrap text-sm leading-relaxed">
+          <div className="min-h-[300px] whitespace-pre-wrap text-sm leading-relaxed">
             {note.content || (
               <span className="text-muted-foreground italic">
                 Esta nota está vazia. Clique em "Editar" para adicionar conteúdo.
@@ -193,13 +220,13 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       </CardContent>
 
       <ShareModal
-        note={note}
+        note={{ ...note, attachments }}
         isOpen={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
       />
 
       <DownloadModal
-        note={note}
+        note={{ ...note, attachments }}
         isOpen={downloadModalOpen}
         onClose={() => setDownloadModalOpen(false)}
       />
