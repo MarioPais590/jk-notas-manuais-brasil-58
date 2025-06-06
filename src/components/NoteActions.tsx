@@ -35,20 +35,17 @@ const NoteActions: React.FC<NoteActionsProps> = ({
     setDropdownOpen(false);
   };
 
+  const handleDropdownChange = (open: boolean) => {
+    setDropdownOpen(open);
+    if (!open) {
+      setColorPopoverOpen(false);
+    }
+  };
+
   return (
     <DropdownMenu 
       open={dropdownOpen} 
-      onOpenChange={(open) => {
-        // Não fecha o dropdown se o color picker estiver aberto
-        if (!open && colorPopoverOpen) {
-          return;
-        }
-        setDropdownOpen(open);
-        // Se o dropdown está fechando, fecha o color picker também
-        if (!open) {
-          setColorPopoverOpen(false);
-        }
-      }}
+      onOpenChange={handleDropdownChange}
     >
       <DropdownMenuTrigger asChild>
         <Button
@@ -60,19 +57,7 @@ const NoteActions: React.FC<NoteActionsProps> = ({
           <MoreVertical className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        align="end"
-        onInteractOutside={(e) => {
-          // Se o color picker estiver aberto, não fecha o menu ao interagir com ele
-          if (colorPopoverOpen) {
-            const target = e.target as Element;
-            if (target.closest('[data-radix-popper-content-wrapper]')) {
-              e.preventDefault();
-              return;
-            }
-          }
-        }}
-      >
+      <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
           <Edit className="h-4 w-4 mr-2" />
           Editar
