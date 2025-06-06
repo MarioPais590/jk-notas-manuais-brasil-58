@@ -6,7 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { NOTE_COLORS } from '@/constants/noteColors';
 
 interface ColorPickerProps {
@@ -23,21 +23,22 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   return (
     <Popover open={isOpen} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-        <DropdownMenuItem 
-          onSelect={(e) => e.preventDefault()}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             onOpenChange(!isOpen);
           }}
         >
-          <Palette className="h-4 w-4 mr-2" />
-          Cor
-        </DropdownMenuItem>
+          <Palette className="h-4 w-4" />
+        </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-48 p-3" 
-        align="end"
+        className="w-48 p-3 z-50" 
+        align="start"
         side="right"
         sideOffset={5}
         onOpenAutoFocus={(e) => e.preventDefault()}
@@ -49,7 +50,9 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
               key={color}
               className="w-8 h-8 rounded-full border-2 border-gray-200 hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-primary"
               style={{ backgroundColor: color }}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 onColorSelect(color);
                 onOpenChange(false);
               }}
