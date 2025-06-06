@@ -21,7 +21,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ note, isOpen, onClose }) 
   const { toast } = useToast();
 
   const downloadAsText = () => {
-    const content = `${note.title}\n\n${note.content}\n\n---\nCriado em: ${new Date(note.createdAt).toLocaleString('pt-BR')}\nCriado com Notas JK por Mário Augusto`;
+    const content = `${note.title}\n\n${note.content}\n\n---\nCriado em: ${new Date(note.created_at).toLocaleString('pt-BR')}\nCriado com Notas JK por Mário Augusto`;
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -58,11 +58,11 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ note, isOpen, onClose }) 
 <body>
     <h1>${note.title}</h1>
     <div class="meta">
-        Criado em: ${new Date(note.createdAt).toLocaleString('pt-BR')}<br>
-        ${note.updatedAt.getTime() !== note.createdAt.getTime() ? 
-          `Última edição: ${new Date(note.updatedAt).toLocaleString('pt-BR')}` : ''}
+        Criado em: ${new Date(note.created_at).toLocaleString('pt-BR')}<br>
+        ${note.updated_at.getTime() !== note.created_at.getTime() ? 
+          `Última edição: ${new Date(note.updated_at).toLocaleString('pt-BR')}` : ''}
     </div>
-    ${note.coverImage ? `<img src="${note.coverImage}" alt="Capa da nota" />` : ''}
+    ${note.cover_image_url ? `<img src="${note.cover_image_url}" alt="Capa da nota" />` : ''}
     <div class="content">${note.content}</div>
     <div class="footer">
         Criado com Notas JK por Mário Augusto
@@ -121,11 +121,11 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ note, isOpen, onClose }) 
 <body>
     <h1>${note.title}</h1>
     <div class="meta">
-        Criado em: ${new Date(note.createdAt).toLocaleString('pt-BR')}<br>
-        ${note.updatedAt.getTime() !== note.createdAt.getTime() ? 
-          `Última edição: ${new Date(note.updatedAt).toLocaleString('pt-BR')}` : ''}
+        Criado em: ${new Date(note.created_at).toLocaleString('pt-BR')}<br>
+        ${note.updated_at.getTime() !== note.created_at.getTime() ? 
+          `Última edição: ${new Date(note.updated_at).toLocaleString('pt-BR')}` : ''}
     </div>
-    ${note.coverImage ? `<img src="${note.coverImage}" alt="Capa da nota" />` : ''}
+    ${note.cover_image_url ? `<img src="${note.cover_image_url}" alt="Capa da nota" />` : ''}
     <div class="content">${note.content}</div>
     <div class="footer">
         Criado com Notas JK por Mário Augusto

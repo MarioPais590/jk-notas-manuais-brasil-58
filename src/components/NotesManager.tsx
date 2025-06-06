@@ -27,10 +27,12 @@ const NotesManager: React.FC<NotesManagerProps> = ({ onCreateNote }) => {
 
   const filteredNotes = filterAndSortNotes(searchTerm);
 
-  const handleCreateNote = () => {
-    const newNote = createNewNote();
-    setSelectedNote(newNote);
-    setIsEditing(true);
+  const handleCreateNote = async () => {
+    const newNote = await createNewNote();
+    if (newNote) {
+      setSelectedNote(newNote);
+      setIsEditing(true);
+    }
   };
 
   const handleNoteSelect = (note: Note) => {
@@ -51,10 +53,10 @@ const NotesManager: React.FC<NotesManagerProps> = ({ onCreateNote }) => {
     }
   };
 
-  const handleNoteSave = (noteData: Partial<Note>) => {
+  const handleNoteSave = async (noteData: Partial<Note>) => {
     if (!selectedNote) return;
     
-    const updatedNote = saveNote(selectedNote.id, noteData);
+    const updatedNote = await saveNote(selectedNote.id, noteData);
     if (updatedNote) {
       setSelectedNote(updatedNote);
     }

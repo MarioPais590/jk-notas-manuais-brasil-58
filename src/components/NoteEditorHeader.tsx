@@ -45,9 +45,9 @@ const NoteEditorHeader: React.FC<NoteEditorHeaderProps> = ({
           <h2 className="text-lg font-semibold">{note.title}</h2>
         )}
         <p className="text-sm text-muted-foreground mt-1">
-          Criado em {formatDate(note.createdAt)}
-          {note.updatedAt.getTime() !== note.createdAt.getTime() && (
-            <span> • Editado em {formatDate(note.updatedAt)}</span>
+          Criado em {formatDate(note.created_at)}
+          {note.updated_at.getTime() !== note.created_at.getTime() && (
+            <span> • Editado em {formatDate(note.updated_at)}</span>
           )}
         </p>
       </div>
