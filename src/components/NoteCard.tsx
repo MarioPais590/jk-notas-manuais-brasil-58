@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Pin, Edit, Trash2, MoreVertical, Palette, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -126,7 +125,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
                 <PopoverContent 
                   className="w-48 p-3" 
                   align="end"
-                  onPointerDownOutside={() => setColorPopoverOpen(false)}
+                  onInteractOutside={() => setColorPopoverOpen(false)}
                   onEscapeKeyDown={() => setColorPopoverOpen(false)}
                 >
                   <div className="grid grid-cols-4 gap-2">
@@ -136,12 +135,10 @@ const NoteCard: React.FC<NoteCardProps> = ({
                         className="w-8 h-8 rounded-full border-2 border-gray-200 hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{ backgroundColor: color }}
                         onClick={(e) => {
-                          e.preventDefault();
                           e.stopPropagation();
                           onColorChange(color);
                           setColorPopoverOpen(false);
                         }}
-                        onMouseDown={(e) => e.preventDefault()}
                       />
                     ))}
                   </div>
