@@ -25,9 +25,12 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
       <PopoverTrigger asChild>
         <DropdownMenuItem 
           onSelect={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
-            onOpenChange(true);
+            onOpenChange(!isOpen);
           }}
         >
           <Palette className="h-4 w-4 mr-2" />
@@ -37,8 +40,24 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
       <PopoverContent 
         className="w-48 p-3" 
         align="end"
-        onInteractOutside={() => onOpenChange(false)}
+        side="right"
+        sideOffset={5}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          // Só fecha se clicar realmente fora, não em elementos relacionados
+          const target = e.target as Element;
+          if (!target.closest('[data-radix-popper-content-wrapper]')) {
+            onOpenChange(false);
+          }
+        }}
         onEscapeKeyDown={() => onOpenChange(false)}
+        onPointerDownOutside={(e) => {
+          const target = e.target as Element;
+          if (!target.closest('[data-radix-popper-content-wrapper]')) {
+            onOpenChange(false);
+          }
+        }}
       >
         <div className="grid grid-cols-4 gap-2">
           {NOTE_COLORS.map((color) => (
@@ -46,7 +65,10 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
               key={color}
               className="w-8 h-8 rounded-full border-2 border-gray-200 hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-primary"
               style={{ backgroundColor: color }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onMouseUp={(e) => e.stopPropagation()}
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 onColorSelect(color);
                 onOpenChange(false);
