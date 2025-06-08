@@ -11,39 +11,46 @@ export function useSupabaseNotes() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get initial session
+    let mounted = true;
+
     const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
         }
-        console.log('Initial session:', session?.user?.email);
-        setUser(session?.user ?? null);
         
-        // Only fetch notes if we have a user
-        if (session?.user) {
-          await fetchNotes(session.user);
-        } else {
-          setLoading(false);
+        if (mounted) {
+          console.log('Initial session:', session?.user?.email);
+          setUser(session?.user ?? null);
+          
+          if (session?.user) {
+            await fetchNotes(session.user);
+          } else {
+            setLoading(false);
+          }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     initializeAuth();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
       console.log('Auth state change:', event, session?.user?.email);
       setUser(session?.user ?? null);
       
       if (session?.user && event === 'SIGNED_IN') {
-        // Defer data fetching to prevent deadlocks
         setTimeout(async () => {
-          await fetchNotes(session.user);
+          if (mounted) {
+            await fetchNotes(session.user);
+          }
         }, 100);
       } else {
         setNotes([]);
@@ -51,7 +58,10 @@ export function useSupabaseNotes() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const convertDatabaseNote = (dbNote: DatabaseNote, attachments: DatabaseNoteAttachment[] = []): Note => ({
@@ -87,7 +97,6 @@ export function useSupabaseNotes() {
       setLoading(true);
       console.log('Fetching notes for user:', userToUse.id);
       
-      // Fetch notes with attachments
       const { data: notesData, error: notesError } = await supabase
         .from('notes')
         .select(`
@@ -199,7 +208,6 @@ export function useSupabaseNotes() {
 
       console.log('Saved note:', data);
       
-      // Get current attachments to maintain them
       const currentNote = notes.find(n => n.id === noteId);
       const updatedNote = convertDatabaseNote(data, []);
       updatedNote.attachments = currentNote?.attachments || [];
@@ -226,36 +234,38 @@ export function useSupabaseNotes() {
   };
 
   const deleteNote = async (noteId: string) => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user for deleteNote');
+      return;
+    }
 
     try {
       console.log('Starting note deletion process for note:', noteId);
       
-      // First, get all attachments for this note
+      // First, get all attachments for this note to clean up storage
       const { data: attachments, error: attachmentsError } = await supabase
         .from('note_attachments')
-        .select('*')
+        .select('file_url')
         .eq('note_id', noteId);
 
       if (attachmentsError) {
         console.error('Error fetching attachments for deletion:', attachmentsError);
-        // Continue with deletion even if we can't fetch attachments
       }
 
-      // Delete attachments from storage and database
+      // Delete attachment files from storage
       if (attachments && attachments.length > 0) {
-        console.log('Deleting attachments:', attachments.length);
+        console.log('Deleting attachment files:', attachments.length);
         
         for (const attachment of attachments) {
-          // Extract file path from URL for storage deletion
           try {
-            const urlParts = attachment.file_url.split('/');
-            const fileName = urlParts[urlParts.length - 1];
+            // Extract file path from the full URL
+            const url = new URL(attachment.file_url);
+            const pathParts = url.pathname.split('/');
+            const fileName = pathParts[pathParts.length - 1];
             const filePath = `${user.id}/${noteId}/${fileName}`;
             
             console.log('Deleting file from storage:', filePath);
             
-            // Delete from storage (don't throw if this fails)
             const { error: storageError } = await supabase.storage
               .from('note-attachments')
               .remove([filePath]);
@@ -267,17 +277,35 @@ export function useSupabaseNotes() {
             console.warn('Error deleting from storage:', storageErr);
           }
         }
+      }
 
-        // Delete attachment records from database
-        const { error: deleteAttachmentsError } = await supabase
-          .from('note_attachments')
-          .delete()
-          .eq('note_id', noteId);
-
-        if (deleteAttachmentsError) {
-          console.error('Error deleting attachment records:', deleteAttachmentsError);
-          // Continue with note deletion
+      // Delete cover image if exists
+      const noteToDelete = notes.find(n => n.id === noteId);
+      if (noteToDelete?.cover_image_url) {
+        try {
+          const url = new URL(noteToDelete.cover_image_url);
+          const pathParts = url.pathname.split('/');
+          const fileName = pathParts[pathParts.length - 1];
+          const filePath = `${user.id}/covers/${noteId}/${fileName}`;
+          
+          console.log('Deleting cover image from storage:', filePath);
+          
+          await supabase.storage
+            .from('note-attachments')
+            .remove([filePath]);
+        } catch (coverErr) {
+          console.warn('Error deleting cover image:', coverErr);
         }
+      }
+
+      // Delete attachment records from database
+      const { error: deleteAttachmentsError } = await supabase
+        .from('note_attachments')
+        .delete()
+        .eq('note_id', noteId);
+
+      if (deleteAttachmentsError) {
+        console.error('Error deleting attachment records:', deleteAttachmentsError);
       }
 
       // Delete the note itself
@@ -305,7 +333,7 @@ export function useSupabaseNotes() {
       console.error('Error deleting note:', error);
       toast({
         title: "Erro ao excluir nota",
-        description: "Não foi possível excluir a nota.",
+        description: "Não foi possível excluir a nota. Tente novamente.",
         variant: "destructive",
       });
     }
@@ -382,13 +410,17 @@ export function useSupabaseNotes() {
   const uploadAttachment = async (noteId: string, file: File): Promise<NoteAttachment | null> => {
     if (!user) {
       console.log('No user for uploadAttachment');
+      toast({
+        title: "Erro de autenticação",
+        description: "Você precisa estar logado para anexar arquivos.",
+        variant: "destructive",
+      });
       return null;
     }
 
     try {
       console.log('Starting attachment upload for note:', noteId, 'file:', file.name);
       
-      // Create a simpler file path structure
       const fileExt = file.name.split('.').pop();
       const timestamp = Date.now();
       const fileName = `${user.id}/${noteId}/${timestamp}.${fileExt}`;
@@ -465,12 +497,17 @@ export function useSupabaseNotes() {
       ));
 
       console.log('Attachment upload completed successfully');
+      toast({
+        title: "Arquivo anexado",
+        description: `${file.name} foi anexado à nota com sucesso.`,
+      });
+
       return newAttachment;
     } catch (error) {
       console.error('Error uploading attachment:', error);
       toast({
         title: "Erro ao anexar arquivo",
-        description: "Não foi possível anexar o arquivo. Verifique sua conexão.",
+        description: "Não foi possível anexar o arquivo. Verifique sua conexão e tente novamente.",
         variant: "destructive",
       });
       return null;
@@ -478,7 +515,10 @@ export function useSupabaseNotes() {
   };
 
   const removeAttachment = async (attachmentId: string, noteId: string) => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user for removeAttachment');
+      return;
+    }
 
     try {
       console.log('Removing attachment:', attachmentId);
@@ -486,7 +526,7 @@ export function useSupabaseNotes() {
       // Get attachment info first
       const { data: attachment, error: getError } = await supabase
         .from('note_attachments')
-        .select('file_url')
+        .select('file_url, name')
         .eq('id', attachmentId)
         .single();
 
@@ -496,8 +536,9 @@ export function useSupabaseNotes() {
       }
 
       // Extract file path from URL
-      const urlParts = attachment.file_url.split('/');
-      const fileName = urlParts[urlParts.length - 1];
+      const url = new URL(attachment.file_url);
+      const pathParts = url.pathname.split('/');
+      const fileName = pathParts[pathParts.length - 1];
       const filePath = `${user.id}/${noteId}/${fileName}`;
 
       console.log('Deleting file from storage:', filePath);
@@ -530,11 +571,15 @@ export function useSupabaseNotes() {
       ));
 
       console.log('Attachment removed successfully');
+      toast({
+        title: "Anexo removido",
+        description: `${attachment.name} foi removido com sucesso.`,
+      });
     } catch (error) {
       console.error('Error removing attachment:', error);
       toast({
         title: "Erro ao remover anexo",
-        description: "Não foi possível remover o anexo.",
+        description: "Não foi possível remover o anexo. Tente novamente.",
         variant: "destructive",
       });
     }
@@ -547,10 +592,8 @@ export function useSupabaseNotes() {
         note.content.toLowerCase().includes(searchTerm.toLowerCase())
       )
       .sort((a, b) => {
-        // Primeiro as fixadas
         if (a.is_pinned && !b.is_pinned) return -1;
         if (!a.is_pinned && b.is_pinned) return 1;
-        // Depois por data (mais recente primeiro)
         return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
       });
   };

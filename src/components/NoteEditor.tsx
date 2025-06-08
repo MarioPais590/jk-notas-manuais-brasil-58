@@ -77,7 +77,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       return;
     }
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
         title: "Tipo de arquivo inválido",
@@ -91,9 +90,16 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       setUploadingCover(true);
       console.log('Uploading cover image for note:', note.id);
       
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
+      
       const fileExt = file.name.split('.').pop();
       const timestamp = Date.now();
-      const fileName = `${note.user_id}/covers/${note.id}/${timestamp}.${fileExt}`;
+      const fileName = `${user.id}/covers/${note.id}/${timestamp}.${fileExt}`;
 
       console.log('Cover image upload path:', fileName);
 
@@ -128,7 +134,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       console.error('Error uploading cover image:', error);
       toast({
         title: "Erro ao carregar imagem",
-        description: "Não foi possível carregar a imagem de capa.",
+        description: "Não foi possível carregar a imagem de capa. Verifique sua conexão.",
         variant: "destructive",
       });
     } finally {
