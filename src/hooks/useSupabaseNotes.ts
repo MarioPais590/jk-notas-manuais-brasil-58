@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Note, NoteAttachment, DatabaseNote, DatabaseNoteAttachment } from '@/types/Note';
@@ -21,8 +20,10 @@ export function useSupabaseNotes() {
         }
         console.log('Initial session:', session?.user?.email);
         setUser(session?.user ?? null);
+        
+        // Only fetch notes if we have a user
         if (session?.user) {
-          await fetchNotes();
+          await fetchNotes(session.user);
         } else {
           setLoading(false);
         }
@@ -42,7 +43,7 @@ export function useSupabaseNotes() {
       if (session?.user && event === 'SIGNED_IN') {
         // Defer data fetching to prevent deadlocks
         setTimeout(async () => {
-          await fetchNotes();
+          await fetchNotes(session.user);
         }, 100);
       } else {
         setNotes([]);
@@ -74,15 +75,17 @@ export function useSupabaseNotes() {
     }))
   });
 
-  const fetchNotes = async () => {
-    if (!user) {
+  const fetchNotes = async (currentUser?: User) => {
+    const userToUse = currentUser || user;
+    if (!userToUse) {
       console.log('No user for fetchNotes');
+      setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      console.log('Fetching notes for user:', user.id);
+      console.log('Fetching notes for user:', userToUse.id);
       
       // Fetch notes with attachments
       const { data: notesData, error: notesError } = await supabase
@@ -91,7 +94,7 @@ export function useSupabaseNotes() {
           *,
           note_attachments (*)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', userToUse.id)
         .order('updated_at', { ascending: false });
 
       if (notesError) {
@@ -111,7 +114,7 @@ export function useSupabaseNotes() {
       console.error('Error fetching notes:', error);
       toast({
         title: "Erro ao carregar notas",
-        description: "Não foi possível carregar suas notas.",
+        description: "Não foi possível carregar suas notas. Verifique sua conexão.",
         variant: "destructive",
       });
     } finally {
@@ -122,6 +125,11 @@ export function useSupabaseNotes() {
   const createNewNote = async (): Promise<Note | null> => {
     if (!user) {
       console.log('No user for createNewNote');
+      toast({
+        title: "Erro de autenticação",
+        description: "Você precisa estar logado para criar uma nota.",
+        variant: "destructive",
+      });
       return null;
     }
 
@@ -157,7 +165,7 @@ export function useSupabaseNotes() {
       console.error('Error creating note:', error);
       toast({
         title: "Erro ao criar nota",
-        description: "Não foi possível criar a nota.",
+        description: "Não foi possível criar a nota. Tente novamente.",
         variant: "destructive",
       });
       return null;
@@ -210,7 +218,7 @@ export function useSupabaseNotes() {
       console.error('Error saving note:', error);
       toast({
         title: "Erro ao salvar nota",
-        description: "Não foi possível salvar a nota.",
+        description: "Não foi possível salvar a nota. Tente novamente.",
         variant: "destructive",
       });
       return null;
@@ -380,7 +388,7 @@ export function useSupabaseNotes() {
     try {
       console.log('Starting attachment upload for note:', noteId, 'file:', file.name);
       
-      // Simplified file path structure
+      // Create a simpler file path structure
       const fileExt = file.name.split('.').pop();
       const timestamp = Date.now();
       const fileName = `${user.id}/${noteId}/${timestamp}.${fileExt}`;
@@ -462,7 +470,7 @@ export function useSupabaseNotes() {
       console.error('Error uploading attachment:', error);
       toast({
         title: "Erro ao anexar arquivo",
-        description: "Não foi possível anexar o arquivo.",
+        description: "Não foi possível anexar o arquivo. Verifique sua conexão.",
         variant: "destructive",
       });
       return null;
@@ -559,6 +567,6 @@ export function useSupabaseNotes() {
     uploadAttachment,
     removeAttachment,
     filterAndSortNotes,
-    refetch: fetchNotes,
+    refetch: () => fetchNotes(),
   };
 }
