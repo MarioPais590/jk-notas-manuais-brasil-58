@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import ColorPicker from './ColorPicker';
+import DeleteConfirmDialog from './DeleteConfirmDialog';
 import { Note } from '@/types/Note';
 
 interface NoteActionsProps {
@@ -28,10 +29,21 @@ const NoteActions: React.FC<NoteActionsProps> = ({
 }) => {
   const [colorPopoverOpen, setColorPopoverOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleColorSelect = (color: string) => {
     onColorChange(color);
     setColorPopoverOpen(false);
+  };
+
+  const handleDeleteClick = () => {
+    setDropdownOpen(false);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setDeleteDialogOpen(false);
+    onDelete();
   };
 
   return (
@@ -67,13 +79,24 @@ const NoteActions: React.FC<NoteActionsProps> = ({
           </DropdownMenuItem>
           <DropdownMenuItem 
             className="text-destructive"
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              handleDeleteClick();
+            }}
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Excluir
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Excluir nota"
+        description="Tem certeza que deseja excluir esta nota? Esta ação não pode ser desfeita e todos os anexos também serão removidos."
+      />
     </div>
   );
 };

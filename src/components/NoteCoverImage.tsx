@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import ImageWithFallback from './ImageWithFallback';
 
 interface NoteCoverImageProps {
   coverImage: string | null;
@@ -17,10 +18,11 @@ const NoteCoverImage: React.FC<NoteCoverImageProps> = ({
 
   return (
     <div>
-      <img
+      <ImageWithFallback
         src={coverImage}
         alt="Capa da nota"
         className="w-full max-h-48 object-cover rounded-lg"
+        fallbackText="Erro ao carregar imagem de capa"
       />
       {isEditing && (
         <Button

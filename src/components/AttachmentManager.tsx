@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Paperclip, X, Download, File, FileText, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -20,6 +20,7 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
 }) => {
   const { toast } = useToast();
   const { uploadAttachment, removeAttachment } = useSupabaseNotes();
+  const [uploading, setUploading] = useState(false);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -58,18 +59,30 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
       return;
     }
 
+    setUploading(true);
     console.log('Starting file upload for note:', noteId);
-    const result = await uploadAttachment(noteId, file);
-    if (result) {
-      console.log('File uploaded successfully:', result);
+    
+    try {
+      const result = await uploadAttachment(noteId, file);
+      if (result) {
+        console.log('File uploaded successfully:', result);
+        toast({
+          title: "Anexo adicionado",
+          description: `${file.name} foi anexado à nota.`,
+        });
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
       toast({
-        title: "Anexo adicionado",
-        description: `${file.name} foi anexado à nota.`,
+        title: "Erro no upload",
+        description: "Não foi possível anexar o arquivo.",
+        variant: "destructive",
       });
+    } finally {
+      setUploading(false);
+      // Clear the input
+      event.target.value = '';
     }
-
-    // Limpar o input
-    event.target.value = '';
   };
 
   const handleRemoveAttachment = async (attachmentId: string) => {
@@ -112,12 +125,22 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
             onChange={handleFileUpload}
             className="hidden"
             id="attachment-upload"
+            disabled={uploading}
           />
           <label htmlFor="attachment-upload">
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" asChild disabled={uploading}>
               <span className="cursor-pointer flex items-center gap-2">
-                <Paperclip className="h-4 w-4" />
-                Anexar Arquivo
+                {uploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Paperclip className="h-4 w-4" />
+                    Anexar Arquivo
+                  </>
+                )}
               </span>
             </Button>
           </label>

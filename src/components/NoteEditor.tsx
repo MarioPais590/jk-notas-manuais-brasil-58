@@ -31,6 +31,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   const [coverImage, setCoverImage] = useState(note.cover_image_url);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -76,15 +77,33 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       return;
     }
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Tipo de arquivo inválido",
+        description: "Apenas imagens são permitidas para capa.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      setUploadingCover(true);
       console.log('Uploading cover image for note:', note.id);
+      
       const fileExt = file.name.split('.').pop();
-      const fileName = `${note.user_id}/covers/${note.id}/${Date.now()}.${fileExt}`;
+      const timestamp = Date.now();
+      const fileName = `${note.user_id}/covers/${note.id}/${timestamp}.${fileExt}`;
+
+      console.log('Cover image upload path:', fileName);
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('note-attachments')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (error) {
         console.error('Cover image upload error:', error);
@@ -106,12 +125,16 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         description: "A imagem de capa foi adicionada com sucesso.",
       });
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Error uploading cover image:', error);
       toast({
         title: "Erro ao carregar imagem",
-        description: "Não foi possível carregar a imagem.",
+        description: "Não foi possível carregar a imagem de capa.",
         variant: "destructive",
       });
+    } finally {
+      setUploadingCover(false);
+      // Clear the input
+      event.target.value = '';
     }
   };
 
@@ -133,6 +156,13 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       </CardHeader>
 
       <CardContent className="pt-0 space-y-4">
+        {uploadingCover && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            Carregando imagem de capa...
+          </div>
+        )}
+
         <NoteCoverImage
           coverImage={isEditing ? coverImage : note.cover_image_url}
           isEditing={isEditing}
