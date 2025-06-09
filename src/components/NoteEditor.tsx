@@ -10,6 +10,7 @@ import NoteEditorContent from '@/components/NoteEditorContent';
 import { Note } from '@/types/Note';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { processImageForCover, COVER_IMAGE_CONFIG } from '@/utils/imageProcessor';
 
 interface NoteEditorProps {
   note: Note;
@@ -32,12 +33,14 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     setTitle(note.title);
     setContent(note.content);
     setCoverImage(note.cover_image_url);
+    setCoverPreview(null);
   }, [note]);
 
   const handleSave = () => {
@@ -68,28 +71,23 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB
-      toast({
-        title: "Arquivo muito grande",
-        description: "A imagem deve ter no máximo 5MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Tipo de arquivo inválido",
-        description: "Apenas imagens são permitidas para capa.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setUploadingCover(true);
-      console.log('Uploading cover image for note:', note.id);
+      console.log('Processing cover image for note:', note.id);
       
+      // Processar e redimensionar imagem
+      const processedImage = await processImageForCover(file);
+      
+      console.log('Image processed successfully:', {
+        originalSize: processedImage.originalSize,
+        processedSize: processedImage.processedSize,
+        dimensions: `${processedImage.width}x${processedImage.height}`
+      });
+
+      // Criar preview local
+      const previewUrl = URL.createObjectURL(processedImage.file);
+      setCoverPreview(previewUrl);
+
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
@@ -97,16 +95,15 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         throw new Error('Usuário não autenticado');
       }
       
-      const fileExt = file.name.split('.').pop();
       const timestamp = Date.now();
-      const fileName = `${user.id}/covers/${note.id}/${timestamp}.${fileExt}`;
+      const fileName = `${user.id}/covers/${note.id}/${timestamp}.png`;
 
-      console.log('Cover image upload path:', fileName);
+      console.log('Uploading processed cover image to:', fileName);
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('note-attachments')
-        .upload(fileName, file, {
+        .upload(fileName, processedImage.file, {
           cacheControl: '3600',
           upsert: false
         });
@@ -125,16 +122,18 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
       console.log('Cover image public URL:', publicUrl);
       setCoverImage(publicUrl);
+      setCoverPreview(null); // Limpar preview após upload bem-sucedido
       
       toast({
         title: "Imagem carregada",
-        description: "A imagem de capa foi adicionada com sucesso.",
+        description: `Capa redimensionada para ${COVER_IMAGE_CONFIG.width}x${COVER_IMAGE_CONFIG.height}px e adicionada com sucesso.`,
       });
     } catch (error) {
       console.error('Error uploading cover image:', error);
+      setCoverPreview(null);
       toast({
         title: "Erro ao carregar imagem",
-        description: "Não foi possível carregar a imagem de capa. Verifique sua conexão.",
+        description: error instanceof Error ? error.message : "Não foi possível carregar a imagem de capa. Verifique sua conexão.",
         variant: "destructive",
       });
     } finally {
@@ -142,6 +141,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       // Clear the input
       event.target.value = '';
     }
+  };
+
+  const handleRemoveCover = () => {
+    setCoverImage(null);
+    setCoverPreview(null);
   };
 
   return (
@@ -165,14 +169,20 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         {uploadingCover && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-            Carregando imagem de capa...
+            Processando e carregando imagem de capa...
+          </div>
+        )}
+
+        {isEditing && (
+          <div className="text-xs text-muted-foreground border rounded-md p-2 bg-muted/50">
+            💡 <strong>Capa da nota:</strong> Dimensões: {COVER_IMAGE_CONFIG.width}x{COVER_IMAGE_CONFIG.height}px • Formatos: PNG, JPG • Máximo: 2MB
           </div>
         )}
 
         <NoteCoverImage
-          coverImage={isEditing ? coverImage : note.cover_image_url}
+          coverImage={coverPreview || (isEditing ? coverImage : note.cover_image_url)}
           isEditing={isEditing}
-          onRemoveCover={() => setCoverImage(null)}
+          onRemoveCover={handleRemoveCover}
         />
 
         <AttachmentManager

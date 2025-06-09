@@ -57,13 +57,18 @@ const NoteEditorHeader: React.FC<NoteEditorHeaderProps> = ({
           <>
             <input
               type="file"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/jpg"
               onChange={onImageUpload}
               className="hidden"
               id="cover-upload"
             />
             <label htmlFor="cover-upload">
-              <Button variant="outline" size="sm" asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                asChild
+                title="Adicionar capa (70x150px, PNG/JPG, máx 2MB)"
+              >
                 <span className="cursor-pointer">
                   <Image className="h-4 w-4" />
                 </span>

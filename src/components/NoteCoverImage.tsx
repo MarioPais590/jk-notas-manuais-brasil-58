@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import ImageWithFallback from './ImageWithFallback';
+import { COVER_IMAGE_CONFIG } from '@/utils/imageProcessor';
 
 interface NoteCoverImageProps {
   coverImage: string | null;
@@ -17,22 +18,36 @@ const NoteCoverImage: React.FC<NoteCoverImageProps> = ({
   if (!coverImage) return null;
 
   return (
-    <div>
-      <ImageWithFallback
-        src={coverImage}
-        alt="Capa da nota"
-        className="w-full max-h-48 object-cover rounded-lg"
-        fallbackText="Erro ao carregar imagem de capa"
-      />
+    <div className="space-y-2">
+      <div 
+        className="overflow-hidden rounded-lg border bg-muted flex items-center justify-center"
+        style={{
+          width: `${COVER_IMAGE_CONFIG.width * 2}px`,
+          height: `${COVER_IMAGE_CONFIG.height * 2}px`,
+          maxWidth: '100%'
+        }}
+      >
+        <ImageWithFallback
+          src={coverImage}
+          alt="Capa da nota"
+          className="w-full h-full object-cover"
+          fallbackText="Erro ao carregar imagem de capa"
+        />
+      </div>
+      
       {isEditing && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-2"
-          onClick={onRemoveCover}
-        >
-          Remover Capa
-        </Button>
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-muted-foreground">
+            Dimensões: {COVER_IMAGE_CONFIG.width}x{COVER_IMAGE_CONFIG.height}px
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRemoveCover}
+          >
+            Remover Capa
+          </Button>
+        </div>
       )}
     </div>
   );
