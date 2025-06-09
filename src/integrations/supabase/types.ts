@@ -75,15 +75,7 @@ export type Database = {
           old_values?: Json | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "note_audit_log_note_id_fkey"
-            columns: ["note_id"]
-            isOneToOne: false
-            referencedRelation: "notes"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       notes: {
         Row: {

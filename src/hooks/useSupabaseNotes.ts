@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Note, NoteAttachment, DatabaseNote, DatabaseNoteAttachment } from '@/types/Note';
@@ -236,6 +237,11 @@ export function useSupabaseNotes() {
   const deleteNote = async (noteId: string) => {
     if (!user) {
       console.log('No user for deleteNote');
+      toast({
+        title: "Erro de autenticação",
+        description: "Você precisa estar logado para excluir notas.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -250,6 +256,7 @@ export function useSupabaseNotes() {
 
       if (attachmentsError) {
         console.error('Error fetching attachments for deletion:', attachmentsError);
+        // Continue with deletion even if we can't fetch attachments
       }
 
       // Delete attachment files from storage
@@ -261,20 +268,23 @@ export function useSupabaseNotes() {
             // Extract file path from the full URL
             const url = new URL(attachment.file_url);
             const pathParts = url.pathname.split('/');
-            const fileName = pathParts[pathParts.length - 1];
-            const filePath = `${user.id}/${noteId}/${fileName}`;
-            
-            console.log('Deleting file from storage:', filePath);
-            
-            const { error: storageError } = await supabase.storage
-              .from('note-attachments')
-              .remove([filePath]);
-            
-            if (storageError) {
-              console.warn('Storage deletion warning:', storageError);
+            // Get the file path after '/storage/v1/object/public/note-attachments/'
+            const bucketIndex = pathParts.findIndex(part => part === 'note-attachments');
+            if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
+              const filePath = pathParts.slice(bucketIndex + 1).join('/');
+              
+              console.log('Deleting file from storage:', filePath);
+              
+              const { error: storageError } = await supabase.storage
+                .from('note-attachments')
+                .remove([filePath]);
+              
+              if (storageError) {
+                console.warn('Storage deletion warning:', storageError);
+              }
             }
           } catch (storageErr) {
-            console.warn('Error deleting from storage:', storageErr);
+            console.warn('Error deleting attachment from storage:', storageErr);
           }
         }
       }
@@ -285,14 +295,20 @@ export function useSupabaseNotes() {
         try {
           const url = new URL(noteToDelete.cover_image_url);
           const pathParts = url.pathname.split('/');
-          const fileName = pathParts[pathParts.length - 1];
-          const filePath = `${user.id}/covers/${noteId}/${fileName}`;
-          
-          console.log('Deleting cover image from storage:', filePath);
-          
-          await supabase.storage
-            .from('note-attachments')
-            .remove([filePath]);
+          const bucketIndex = pathParts.findIndex(part => part === 'note-attachments');
+          if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
+            const filePath = pathParts.slice(bucketIndex + 1).join('/');
+            
+            console.log('Deleting cover image from storage:', filePath);
+            
+            const { error: coverError } = await supabase.storage
+              .from('note-attachments')
+              .remove([filePath]);
+              
+            if (coverError) {
+              console.warn('Error deleting cover image:', coverError);
+            }
+          }
         } catch (coverErr) {
           console.warn('Error deleting cover image:', coverErr);
         }
@@ -306,9 +322,10 @@ export function useSupabaseNotes() {
 
       if (deleteAttachmentsError) {
         console.error('Error deleting attachment records:', deleteAttachmentsError);
+        // Continue with note deletion even if attachment cleanup fails
       }
 
-      // Delete the note itself
+      // Delete the note itself - this will trigger the audit log
       console.log('Deleting note from database:', noteId);
       const { error: deleteNoteError } = await supabase
         .from('notes')
@@ -321,7 +338,7 @@ export function useSupabaseNotes() {
         throw deleteNoteError;
       }
 
-      // Update local state
+      // Update local state only after successful deletion
       setNotes(prev => prev.filter(note => note.id !== noteId));
 
       console.log('Note deleted successfully:', noteId);

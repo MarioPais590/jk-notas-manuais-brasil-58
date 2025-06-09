@@ -26,6 +26,12 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
   title,
   description,
 }) => {
+  const handleConfirm = () => {
+    console.log('Delete confirmed');
+    onConfirm();
+    onClose();
+  };
+
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
@@ -35,7 +41,10 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onClose}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+          <AlertDialogAction 
+            onClick={handleConfirm} 
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
             Excluir
           </AlertDialogAction>
         </AlertDialogFooter>
