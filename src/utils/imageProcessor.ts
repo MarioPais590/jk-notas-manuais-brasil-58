@@ -52,16 +52,58 @@ export const resizeImageToCanvas = (
     sourceY = (image.height - sourceHeight) / 2;
   }
 
-  // Aplicar filtro de suavização para melhor qualidade
+  // Configurações para melhor qualidade
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-
-  // Desenhar imagem redimensionada no canvas
-  ctx.drawImage(
-    image,
-    sourceX, sourceY, sourceWidth, sourceHeight,
-    0, 0, targetWidth, targetHeight
-  );
+  
+  // Usar algoritmo de redimensionamento em duas etapas para melhor qualidade
+  // Primeiro redimensionar para uma resolução intermediária se a diferença for muito grande
+  const scaleFactor = Math.min(sourceWidth / targetWidth, sourceHeight / targetHeight);
+  
+  if (scaleFactor > 2) {
+    // Redimensionamento em duas etapas para melhor qualidade
+    const intermediateWidth = targetWidth * 2;
+    const intermediateHeight = targetHeight * 2;
+    
+    const intermediateCanvas = document.createElement('canvas');
+    const intermediateCtx = intermediateCanvas.getContext('2d');
+    
+    if (intermediateCtx) {
+      intermediateCanvas.width = intermediateWidth;
+      intermediateCanvas.height = intermediateHeight;
+      
+      intermediateCtx.imageSmoothingEnabled = true;
+      intermediateCtx.imageSmoothingQuality = 'high';
+      
+      // Primeira etapa: redimensionar para tamanho intermediário
+      intermediateCtx.drawImage(
+        image,
+        sourceX, sourceY, sourceWidth, sourceHeight,
+        0, 0, intermediateWidth, intermediateHeight
+      );
+      
+      // Segunda etapa: redimensionar do tamanho intermediário para o final
+      ctx.drawImage(
+        intermediateCanvas,
+        0, 0, intermediateWidth, intermediateHeight,
+        0, 0, targetWidth, targetHeight
+      );
+    } else {
+      // Fallback para redimensionamento direto
+      ctx.drawImage(
+        image,
+        sourceX, sourceY, sourceWidth, sourceHeight,
+        0, 0, targetWidth, targetHeight
+      );
+    }
+  } else {
+    // Redimensionamento direto quando a diferença não é muito grande
+    ctx.drawImage(
+      image,
+      sourceX, sourceY, sourceWidth, sourceHeight,
+      0, 0, targetWidth, targetHeight
+    );
+  }
 
   return canvas;
 };
@@ -70,7 +112,7 @@ export const canvasToFile = (
   canvas: HTMLCanvasElement,
   fileName: string,
   format: string = 'image/png',
-  quality: number = 0.9
+  quality: number = 0.95
 ): Promise<File> => {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -109,19 +151,19 @@ export const processImageForCover = async (file: File): Promise<ImageProcessingR
       try {
         console.log(`Imagem original: ${img.width}x${img.height}`);
         
-        // Redimensionar para o tamanho da capa
+        // Redimensionar para o tamanho da capa com melhor qualidade
         const canvas = resizeImageToCanvas(
           img,
           COVER_IMAGE_CONFIG.width,
           COVER_IMAGE_CONFIG.height
         );
 
-        // Converter canvas para arquivo
+        // Converter canvas para arquivo com qualidade alta
         const processedFile = await canvasToFile(
           canvas,
           `cover_${Date.now()}.png`,
           'image/png',
-          0.9
+          0.95
         );
 
         console.log(`Imagem processada: ${COVER_IMAGE_CONFIG.width}x${COVER_IMAGE_CONFIG.height}`);

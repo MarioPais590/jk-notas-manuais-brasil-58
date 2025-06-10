@@ -27,7 +27,7 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   }
 
   return (
-    <div className="relative">
+    <div className="relative w-full h-full">
       {imageLoading && (
         <div className={`absolute inset-0 bg-muted flex items-center justify-center ${className}`}>
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
@@ -43,7 +43,10 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
           setImageError(true);
           setImageLoading(false);
         }}
-        style={{ display: imageLoading ? 'none' : 'block' }}
+        style={{ 
+          display: imageLoading ? 'none' : 'block',
+          imageRendering: 'crisp-edges'
+        }}
       />
     </div>
   );
