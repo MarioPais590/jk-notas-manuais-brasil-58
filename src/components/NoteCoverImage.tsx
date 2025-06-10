@@ -22,8 +22,8 @@ const NoteCoverImage: React.FC<NoteCoverImageProps> = ({
       <div 
         className="overflow-hidden rounded-lg border bg-muted flex items-center justify-center"
         style={{
-          width: `${COVER_IMAGE_CONFIG.width * 2}px`,
-          height: `${COVER_IMAGE_CONFIG.height * 2}px`,
+          width: `${COVER_IMAGE_CONFIG.width}px`,
+          height: `${COVER_IMAGE_CONFIG.height}px`,
           maxWidth: '100%'
         }}
       >

@@ -122,7 +122,12 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
       console.log('Cover image public URL:', publicUrl);
       setCoverImage(publicUrl);
-      setCoverPreview(null); // Limpar preview após upload bem-sucedido
+      
+      // Limpar preview após upload bem-sucedido
+      if (coverPreview) {
+        URL.revokeObjectURL(coverPreview);
+        setCoverPreview(null);
+      }
       
       toast({
         title: "Imagem carregada",
@@ -130,7 +135,10 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       });
     } catch (error) {
       console.error('Error uploading cover image:', error);
-      setCoverPreview(null);
+      if (coverPreview) {
+        URL.revokeObjectURL(coverPreview);
+        setCoverPreview(null);
+      }
       toast({
         title: "Erro ao carregar imagem",
         description: error instanceof Error ? error.message : "Não foi possível carregar a imagem de capa. Verifique sua conexão.",
@@ -145,7 +153,10 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
   const handleRemoveCover = () => {
     setCoverImage(null);
-    setCoverPreview(null);
+    if (coverPreview) {
+      URL.revokeObjectURL(coverPreview);
+      setCoverPreview(null);
+    }
   };
 
   return (

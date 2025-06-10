@@ -8,8 +8,8 @@ export interface ImageProcessingResult {
 }
 
 export const COVER_IMAGE_CONFIG = {
-  width: 70,
-  height: 150,
+  width: 150,
+  height: 70,
   allowedFormats: ['image/png', 'image/jpeg', 'image/jpg'],
   maxFileSize: 2 * 1024 * 1024, // 2MB
 };
@@ -52,6 +52,10 @@ export const resizeImageToCanvas = (
     sourceY = (image.height - sourceHeight) / 2;
   }
 
+  // Aplicar filtro de suavização para melhor qualidade
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
   // Desenhar imagem redimensionada no canvas
   ctx.drawImage(
     image,
@@ -68,11 +72,12 @@ export const canvasToFile = (
   format: string = 'image/png',
   quality: number = 0.9
 ): Promise<File> => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          throw new Error('Falha ao converter canvas para blob');
+          reject(new Error('Falha ao converter canvas para blob'));
+          return;
         }
         
         const file = new File([blob], fileName, { type: format });
@@ -122,6 +127,9 @@ export const processImageForCover = async (file: File): Promise<ImageProcessingR
         console.log(`Imagem processada: ${COVER_IMAGE_CONFIG.width}x${COVER_IMAGE_CONFIG.height}`);
         console.log(`Tamanho original: ${file.size} bytes, processado: ${processedFile.size} bytes`);
 
+        // Limpar URL object para evitar vazamentos de memória
+        URL.revokeObjectURL(img.src);
+
         resolve({
           file: processedFile,
           width: COVER_IMAGE_CONFIG.width,
@@ -130,11 +138,13 @@ export const processImageForCover = async (file: File): Promise<ImageProcessingR
           processedSize: processedFile.size,
         });
       } catch (error) {
+        URL.revokeObjectURL(img.src);
         reject(new Error(`Erro ao processar imagem: ${error}`));
       }
     };
 
     img.onerror = () => {
+      URL.revokeObjectURL(img.src);
       reject(new Error('Erro ao carregar imagem. Verifique se o arquivo está válido.'));
     };
 
