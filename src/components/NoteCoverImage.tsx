@@ -17,13 +17,17 @@ const NoteCoverImage: React.FC<NoteCoverImageProps> = ({
 }) => {
   if (!coverImage) return null;
 
+  // Calcular dimensões proporcionais para display (mantendo a proporção 1700:700)
+  const displayWidth = 340; // Largura reduzida para o display
+  const displayHeight = Math.round((displayWidth * COVER_IMAGE_CONFIG.height) / COVER_IMAGE_CONFIG.width); // ~140px
+
   return (
     <div className="space-y-2">
       <div 
         className="overflow-hidden rounded-lg border bg-muted flex items-center justify-center"
         style={{
-          width: `${COVER_IMAGE_CONFIG.width}px`,
-          height: `${COVER_IMAGE_CONFIG.height}px`,
+          width: `${displayWidth}px`,
+          height: `${displayHeight}px`,
           maxWidth: '100%'
         }}
       >
@@ -38,7 +42,7 @@ const NoteCoverImage: React.FC<NoteCoverImageProps> = ({
       {isEditing && (
         <div className="flex justify-between items-center">
           <span className="text-xs text-muted-foreground">
-            Dimensões: {COVER_IMAGE_CONFIG.width}x{COVER_IMAGE_CONFIG.height}px
+            Dimensões: {COVER_IMAGE_CONFIG.width}x{COVER_IMAGE_CONFIG.height}px • 300 DPI
           </span>
           <Button
             variant="outline"

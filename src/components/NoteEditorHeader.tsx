@@ -67,7 +67,7 @@ const NoteEditorHeader: React.FC<NoteEditorHeaderProps> = ({
                 variant="outline" 
                 size="sm" 
                 asChild
-                title="Adicionar capa (150x70px, PNG/JPG, máx 2MB)"
+                title="Adicionar capa (1700x700px, PNG/JPG, máx 10MB, 300 DPI)"
               >
                 <span className="cursor-pointer">
                   <Image className="h-4 w-4" />

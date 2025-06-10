@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import ShareModal from '@/components/ShareModal';
@@ -186,7 +185,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
         {isEditing && (
           <div className="text-xs text-muted-foreground border rounded-md p-2 bg-muted/50">
-            💡 <strong>Capa da nota:</strong> Dimensões: {COVER_IMAGE_CONFIG.width}x{COVER_IMAGE_CONFIG.height}px • Formatos: PNG, JPG • Máximo: 2MB
+            💡 <strong>Capa da nota:</strong> Dimensões: {COVER_IMAGE_CONFIG.width}x{COVER_IMAGE_CONFIG.height}px • Formatos: PNG, JPG • Máximo: 10MB • Resolução: 300 DPI
           </div>
         )}
 

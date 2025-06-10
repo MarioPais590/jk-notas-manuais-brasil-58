@@ -1,4 +1,3 @@
-
 export interface ImageProcessingResult {
   file: File;
   width: number;
@@ -8,10 +7,10 @@ export interface ImageProcessingResult {
 }
 
 export const COVER_IMAGE_CONFIG = {
-  width: 150,
-  height: 70,
+  width: 1700,
+  height: 700,
   allowedFormats: ['image/png', 'image/jpeg', 'image/jpg'],
-  maxFileSize: 2 * 1024 * 1024, // 2MB
+  maxFileSize: 10 * 1024 * 1024, // 10MB limit (increased due to larger size)
 };
 
 export const validateImageFormat = (file: File): boolean => {
@@ -32,6 +31,19 @@ export const resizeImageToCanvas = (
 
   canvas.width = targetWidth;
   canvas.height = targetHeight;
+
+  // Configurar DPI para 300 PPI
+  const dpi = 300;
+  const pixelRatio = dpi / 96; // 96 é o DPI padrão do navegador
+  
+  // Ajustar tamanho do canvas para 300 DPI
+  canvas.style.width = `${targetWidth}px`;
+  canvas.style.height = `${targetHeight}px`;
+  canvas.width = targetWidth * pixelRatio;
+  canvas.height = targetHeight * pixelRatio;
+  
+  // Escalar o contexto para manter as proporções corretas
+  ctx.scale(pixelRatio, pixelRatio);
 
   // Calcular dimensões para manter proporção e fazer crop center
   const sourceRatio = image.width / image.height;
