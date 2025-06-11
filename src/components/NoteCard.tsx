@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Pin, Paperclip } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Note } from '@/types/Note';
@@ -20,22 +21,27 @@ interface NoteCardProps {
 const NoteCard: React.FC<NoteCardProps> = ({
   note,
   isSelected,
-  onSelect,
   onEdit,
   onDelete,
   onTogglePin,
   onColorChange,
 }) => {
+  const navigate = useNavigate();
+  
   // Truncar o conteúdo e depois processar links apenas se o conteúdo não foi truncado
   const truncatedContent = truncateContent(note.content);
   const shouldProcessLinks = truncatedContent === note.content;
+
+  const handleCardClick = () => {
+    navigate(`/note/${note.id}`);
+  };
 
   return (
     <Card 
       className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
         isSelected ? 'ring-2 ring-primary' : ''
       }`}
-      onClick={onSelect}
+      onClick={handleCardClick}
       style={{ borderLeftColor: note.color, borderLeftWidth: '4px' }}
     >
       <CardContent className="p-4">

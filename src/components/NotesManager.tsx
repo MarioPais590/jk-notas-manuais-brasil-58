@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import NotesSearch from '@/components/NotesSearch';
 import NotesList from '@/components/NotesList';
 import EmptyNoteEditor from '@/components/EmptyNoteEditor';
-import NoteEditor from '@/components/NoteEditor';
 import { useNotes } from '@/hooks/useNotes';
 import { Note } from '@/types/Note';
 
@@ -14,11 +14,9 @@ interface NotesManagerProps {
 
 const NotesManager: React.FC<NotesManagerProps> = ({ renderHeader }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const navigate = useNavigate();
   
   const {
-    saveNote,
     deleteNote,
     togglePinNote,
     updateNoteColor,
@@ -41,39 +39,19 @@ const NotesManager: React.FC<NotesManagerProps> = ({ renderHeader }) => {
       const newNote = await createNewNote();
       console.log('New note created:', newNote);
       if (newNote) {
-        setSelectedNote(newNote);
-        setIsEditing(true);
+        navigate(`/note/${newNote.id}`);
       }
     } catch (error) {
       console.error('Error creating note:', error);
     }
   };
 
-  const handleNoteSelect = (note: Note) => {
-    setSelectedNote(note);
-    setIsEditing(false);
-  };
-
   const handleNoteEdit = (note: Note) => {
-    setSelectedNote(note);
-    setIsEditing(true);
+    navigate(`/note/${note.id}`);
   };
 
   const handleNoteDelete = (noteId: string) => {
     deleteNote(noteId);
-    if (selectedNote?.id === noteId) {
-      setSelectedNote(null);
-      setIsEditing(false);
-    }
-  };
-
-  const handleNoteSave = async (noteData: Partial<Note>) => {
-    if (!selectedNote) return;
-    
-    const updatedNote = await saveNote(selectedNote.id, noteData);
-    if (updatedNote) {
-      setSelectedNote(updatedNote);
-    }
   };
 
   // Show loading state while checking authentication
@@ -109,38 +87,32 @@ const NotesManager: React.FC<NotesManagerProps> = ({ renderHeader }) => {
     <div className="min-h-screen flex flex-col">
       {renderHeader && renderHeader(handleCreateNote)}
       <main className="container mx-auto px-4 py-6 flex-1">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Lista de Notas */}
-          <div className="lg:col-span-1 space-y-4">
-            <NotesSearch
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-            />
+        <div className="max-w-4xl mx-auto space-y-6">
+          <NotesSearch
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+          />
 
-            <NotesList
-              notes={filteredNotes}
-              selectedNote={selectedNote}
-              onNoteSelect={handleNoteSelect}
-              onNoteEdit={handleNoteEdit}
-              onNoteDelete={handleNoteDelete}
-              onNoteTogglePin={togglePinNote}
-              onNoteColorChange={updateNoteColor}
-              onCreateNote={handleCreateNote}
-            />
-          </div>
-
-          {/* Editor de Notas */}
-          <div className="lg:col-span-2">
-            {selectedNote ? (
-              <NoteEditor
-                note={selectedNote}
-                isEditing={isEditing}
-                onSave={handleNoteSave}
-                onEdit={() => setIsEditing(true)}
-                onCancel={() => setIsEditing(false)}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredNotes.length === 0 ? (
+              <div className="col-span-full">
+                <EmptyNoteEditor onCreateNote={handleCreateNote} />
+              </div>
             ) : (
-              <EmptyNoteEditor onCreateNote={handleCreateNote} />
+              filteredNotes.map(note => (
+                <div key={note.id} className="h-fit">
+                  <NotesList
+                    notes={[note]}
+                    selectedNote={null}
+                    onNoteSelect={() => {}}
+                    onNoteEdit={handleNoteEdit}
+                    onNoteDelete={handleNoteDelete}
+                    onNoteTogglePin={togglePinNote}
+                    onNoteColorChange={updateNoteColor}
+                    onCreateNote={handleCreateNote}
+                  />
+                </div>
+              ))
             )}
           </div>
         </div>
