@@ -185,7 +185,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
         {isEditing && (
           <div className="text-xs text-muted-foreground border rounded-md p-2 bg-muted/50">
-            💡 <strong>Capa da nota:</strong> Dimensões: {COVER_IMAGE_CONFIG.width}x{COVER_IMAGE_CONFIG.height}px • Formatos: PNG, JPG • Máximo: 10MB • Resolução: 300 DPI
+            💡 <strong>Capa da nota:</strong> Dimensões: {COVER_IMAGE_CONFIG.width}x{COVER_IMAGE_CONFIG.height}px • Formatos: PNG, JPG, WebP • Máximo: 10MB • Resolução: 300 DPI
           </div>
         )}
 

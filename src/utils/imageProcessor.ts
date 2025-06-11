@@ -9,7 +9,7 @@ export interface ImageProcessingResult {
 export const COVER_IMAGE_CONFIG = {
   width: 1700,
   height: 700,
-  allowedFormats: ['image/png', 'image/jpeg', 'image/jpg'],
+  allowedFormats: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'],
   maxFileSize: 10 * 1024 * 1024, // 10MB limit (increased due to larger size)
 };
 
@@ -147,13 +147,13 @@ export const processImageForCover = async (file: File): Promise<ImageProcessingR
   return new Promise((resolve, reject) => {
     // Validar formato
     if (!validateImageFormat(file)) {
-      reject(new Error('Formato de arquivo não suportado. Use apenas PNG ou JPG.'));
+      reject(new Error('Formato de arquivo não suportado. Use apenas PNG, JPG ou WebP.'));
       return;
     }
 
     // Validar tamanho
     if (file.size > COVER_IMAGE_CONFIG.maxFileSize) {
-      reject(new Error('Arquivo muito grande. Máximo permitido: 2MB.'));
+      reject(new Error('Arquivo muito grande. Máximo permitido: 10MB.'));
       return;
     }
 
