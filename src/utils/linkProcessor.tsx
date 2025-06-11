@@ -29,15 +29,32 @@ export const processTextWithLinks = (text: string): React.ReactNode[] => {
       url = 'https://' + url;
     }
 
-    // Criar elemento de link clicável
+    // Criar elemento de link clicável com melhor suporte mobile
     parts.push(
       <a
         key={`link-${match.index}`}
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
-        onClick={(e) => e.stopPropagation()} // Evitar conflitos com seleção da nota
+        className="text-blue-600 hover:text-blue-800 underline cursor-pointer touch-manipulation"
+        style={{ 
+          wordBreak: 'break-all',
+          WebkitTouchCallout: 'default',
+          WebkitUserSelect: 'text',
+          userSelect: 'text'
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          // Garantir que o link abra corretamente em dispositivos móveis
+          if (window.innerWidth <= 768) {
+            e.preventDefault();
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }
+        }}
+        onTouchEnd={(e) => {
+          // Prevenir conflitos de toque em mobile
+          e.stopPropagation();
+        }}
       >
         {displayUrl}
       </a>
