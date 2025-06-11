@@ -7,6 +7,7 @@ import { Note } from '@/types/Note';
 import NoteActions from './NoteActions';
 import { formatDate, truncateContent } from '@/utils/noteFormatters';
 import { processTextWithLinksAndLineBreaks } from '@/utils/linkProcessor';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface NoteCardProps {
   note: Note;
@@ -21,19 +22,27 @@ interface NoteCardProps {
 const NoteCard: React.FC<NoteCardProps> = ({
   note,
   isSelected,
+  onSelect,
   onEdit,
   onDelete,
   onTogglePin,
   onColorChange,
 }) => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   // Truncar o conteúdo e depois processar links apenas se o conteúdo não foi truncado
   const truncatedContent = truncateContent(note.content);
   const shouldProcessLinks = truncatedContent === note.content;
 
   const handleCardClick = () => {
-    navigate(`/note/${note.id}`);
+    if (isMobile) {
+      // Mobile/tablet: navegar para nova página
+      navigate(`/note/${note.id}`);
+    } else {
+      // Desktop: selecionar nota na mesma página
+      onSelect();
+    }
   };
 
   return (

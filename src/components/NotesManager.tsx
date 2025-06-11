@@ -4,8 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import NotesSearch from '@/components/NotesSearch';
 import NotesList from '@/components/NotesList';
 import EmptyNoteEditor from '@/components/EmptyNoteEditor';
+import NoteEditor from '@/components/NoteEditor';
 import { useNotes } from '@/hooks/useNotes';
 import { Note } from '@/types/Note';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface NotesManagerProps {
   onCreateNote: () => void;
@@ -14,7 +16,10 @@ interface NotesManagerProps {
 
 const NotesManager: React.FC<NotesManagerProps> = ({ renderHeader }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const {
     deleteNote,
@@ -22,6 +27,7 @@ const NotesManager: React.FC<NotesManagerProps> = ({ renderHeader }) => {
     updateNoteColor,
     filterAndSortNotes,
     createNewNote,
+    saveNote,
     loading,
     user,
   } = useNotes();
@@ -39,19 +45,51 @@ const NotesManager: React.FC<NotesManagerProps> = ({ renderHeader }) => {
       const newNote = await createNewNote();
       console.log('New note created:', newNote);
       if (newNote) {
-        navigate(`/note/${newNote.id}`);
+        if (isMobile) {
+          navigate(`/note/${newNote.id}`);
+        } else {
+          setSelectedNote(newNote);
+          setIsEditing(true);
+        }
       }
     } catch (error) {
       console.error('Error creating note:', error);
     }
   };
 
+  const handleNoteSelect = (note: Note) => {
+    if (!isMobile) {
+      setSelectedNote(note);
+      setIsEditing(false);
+    }
+  };
+
   const handleNoteEdit = (note: Note) => {
-    navigate(`/note/${note.id}`);
+    if (isMobile) {
+      navigate(`/note/${note.id}`);
+    } else {
+      setSelectedNote(note);
+      setIsEditing(true);
+    }
   };
 
   const handleNoteDelete = (noteId: string) => {
     deleteNote(noteId);
+    if (selectedNote?.id === noteId) {
+      setSelectedNote(null);
+      setIsEditing(false);
+    }
+  };
+
+  const handleNoteSave = async (noteData: Partial<Note>) => {
+    if (selectedNote) {
+      await saveNote(selectedNote.id, noteData);
+      setIsEditing(false);
+    }
+  };
+
+  const handleNoteCancel = () => {
+    setIsEditing(false);
   };
 
   // Show loading state while checking authentication
@@ -87,34 +125,75 @@ const NotesManager: React.FC<NotesManagerProps> = ({ renderHeader }) => {
     <div className="min-h-screen flex flex-col">
       {renderHeader && renderHeader(handleCreateNote)}
       <main className="container mx-auto px-4 py-6 flex-1">
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-7xl mx-auto space-y-6">
           <NotesSearch
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredNotes.length === 0 ? (
-              <div className="col-span-full">
-                <EmptyNoteEditor onCreateNote={handleCreateNote} />
-              </div>
-            ) : (
-              filteredNotes.map(note => (
-                <div key={note.id} className="h-fit">
+          {isMobile ? (
+            // Mobile: Grid layout como antes
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredNotes.length === 0 ? (
+                <div className="col-span-full">
+                  <EmptyNoteEditor onCreateNote={handleCreateNote} />
+                </div>
+              ) : (
+                filteredNotes.map(note => (
+                  <div key={note.id} className="h-fit">
+                    <NotesList
+                      notes={[note]}
+                      selectedNote={null}
+                      onNoteSelect={handleNoteSelect}
+                      onNoteEdit={handleNoteEdit}
+                      onNoteDelete={handleNoteDelete}
+                      onNoteTogglePin={togglePinNote}
+                      onNoteColorChange={updateNoteColor}
+                      onCreateNote={handleCreateNote}
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            // Desktop: Layout com duas colunas
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Lista de notas */}
+              <div className="space-y-4">
+                {filteredNotes.length === 0 ? (
+                  <EmptyNoteEditor onCreateNote={handleCreateNote} />
+                ) : (
                   <NotesList
-                    notes={[note]}
-                    selectedNote={null}
-                    onNoteSelect={() => {}}
+                    notes={filteredNotes}
+                    selectedNote={selectedNote}
+                    onNoteSelect={handleNoteSelect}
                     onNoteEdit={handleNoteEdit}
                     onNoteDelete={handleNoteDelete}
                     onNoteTogglePin={togglePinNote}
                     onNoteColorChange={updateNoteColor}
                     onCreateNote={handleCreateNote}
                   />
-                </div>
-              ))
-            )}
-          </div>
+                )}
+              </div>
+
+              {/* Editor de notas */}
+              <div className="sticky top-6">
+                {selectedNote ? (
+                  <NoteEditor
+                    note={selectedNote}
+                    isEditing={isEditing}
+                    onSave={handleNoteSave}
+                    onEdit={() => setIsEditing(true)}
+                    onCancel={handleNoteCancel}
+                  />
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-muted rounded-lg">
+                    <p>Selecione uma nota para visualizar seu conteúdo</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>
