@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Note } from '@/types/Note';
 import NoteActions from './NoteActions';
 import { formatDate, truncateContent } from '@/utils/noteFormatters';
+import { processTextWithLinksAndLineBreaks } from '@/utils/linkProcessor';
 
 interface NoteCardProps {
   note: Note;
@@ -25,6 +26,10 @@ const NoteCard: React.FC<NoteCardProps> = ({
   onTogglePin,
   onColorChange,
 }) => {
+  // Truncar o conteúdo e depois processar links apenas se o conteúdo não foi truncado
+  const truncatedContent = truncateContent(note.content);
+  const shouldProcessLinks = truncatedContent === note.content;
+
   return (
     <Card 
       className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
@@ -63,9 +68,13 @@ const NoteCard: React.FC<NoteCardProps> = ({
           </div>
         )}
 
-        <p className="text-sm text-muted-foreground mb-2 line-clamp-3">
-          {truncateContent(note.content)}
-        </p>
+        <div className="text-sm text-muted-foreground mb-2 line-clamp-3">
+          {shouldProcessLinks ? (
+            processTextWithLinksAndLineBreaks(truncatedContent)
+          ) : (
+            truncatedContent
+          )}
+        </div>
 
         {note.attachments && note.attachments.length > 0 && (
           <div className="mb-2">

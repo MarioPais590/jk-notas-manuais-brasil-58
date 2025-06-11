@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Textarea } from '@/components/ui/textarea';
+import { processTextWithLinksAndLineBreaks } from '@/utils/linkProcessor';
 
 interface NoteEditorContentProps {
   content: string;
@@ -24,7 +25,9 @@ const NoteEditorContent: React.FC<NoteEditorContentProps> = ({
         />
       ) : (
         <div className="min-h-[300px] whitespace-pre-wrap text-sm leading-relaxed">
-          {content || (
+          {content ? (
+            processTextWithLinksAndLineBreaks(content)
+          ) : (
             <span className="text-muted-foreground italic">
               Esta nota está vazia. Clique em "Editar" para adicionar conteúdo.
             </span>
