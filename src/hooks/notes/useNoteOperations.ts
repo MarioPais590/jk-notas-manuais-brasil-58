@@ -115,11 +115,38 @@ export function useNoteOperations(
   };
 
   const togglePinNote = async (noteId: string): Promise<boolean> => {
-    if (!user) return false;
+    if (!user) {
+      toast({
+        title: "Erro de autenticação",
+        description: "Você precisa estar logado para fixar notas.",
+        variant: "destructive",
+      });
+      return false;
+    }
 
     try {
       const note = notes.find(n => n.id === noteId);
-      if (!note) return false;
+      if (!note) {
+        toast({
+          title: "Erro",
+          description: "Nota não encontrada.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Verificar se está tentando fixar e já tem 5 notas fixadas
+      if (!note.is_pinned) {
+        const pinnedNotesCount = notes.filter(n => n.is_pinned).length;
+        if (pinnedNotesCount >= 5) {
+          toast({
+            title: "Limite atingido",
+            description: "Você pode fixar no máximo 5 notas. Desafixe uma nota para fixar outra.",
+            variant: "destructive",
+          });
+          return false;
+        }
+      }
 
       console.log('Toggling pin for note:', noteId, 'current:', note.is_pinned);
       const { data, error } = await supabase
@@ -136,14 +163,27 @@ export function useNoteOperations(
       }
 
       const updatedNote = convertDatabaseNote(data);
-      setNotes(prev => prev.map(n => n.id === noteId ? { ...n, ...updatedNote } : n));
+      setNotes(prev => {
+        const updatedNotes = prev.map(n => n.id === noteId ? { ...n, ...updatedNote } : n);
+        // Reorganizar: notas fixadas primeiro, depois por data de atualização
+        return updatedNotes.sort((a, b) => {
+          if (a.is_pinned && !b.is_pinned) return -1;
+          if (!a.is_pinned && b.is_pinned) return 1;
+          return b.updated_at.getTime() - a.updated_at.getTime();
+        });
+      });
+
+      toast({
+        title: note.is_pinned ? "Nota desafixada" : "Nota fixada",
+        description: note.is_pinned ? "A nota foi desafixada." : "A nota foi fixada no topo da lista.",
+      });
 
       return true;
     } catch (error) {
       console.error('Error toggling pin:', error);
       toast({
         title: "Erro ao fixar nota",
-        description: "Não foi possível alterar o status da nota.",
+        description: "Não foi possível alterar o status da nota. Verifique sua conexão.",
         variant: "destructive",
       });
       return false;
@@ -172,6 +212,11 @@ export function useNoteOperations(
       setNotes(prev => prev.map(note => 
         note.id === noteId ? { ...note, ...updatedNote } : note
       ));
+
+      toast({
+        title: "Cor alterada",
+        description: "A cor da nota foi alterada com sucesso.",
+      });
     } catch (error) {
       console.error('Error updating color:', error);
       toast({

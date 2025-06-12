@@ -1,36 +1,53 @@
 
-import { Note, NoteAttachment, DatabaseNote, DatabaseNoteAttachment } from '@/types/Note';
+import { Note, DatabaseNote, DatabaseNoteAttachment, NoteAttachment } from '@/types/Note';
 
-export const convertDatabaseNote = (dbNote: DatabaseNote, attachments: DatabaseNoteAttachment[] = []): Note => ({
-  id: dbNote.id,
-  user_id: dbNote.user_id,
-  title: dbNote.title,
-  content: dbNote.content,
-  color: dbNote.color,
-  cover_image_url: dbNote.cover_image_url,
-  is_pinned: dbNote.is_pinned,
-  created_at: new Date(dbNote.created_at),
-  updated_at: new Date(dbNote.updated_at),
-  attachments: attachments.map(att => ({
+export function convertDatabaseNote(
+  dbNote: DatabaseNote, 
+  dbAttachments: DatabaseNoteAttachment[] = []
+): Note {
+  const attachments: NoteAttachment[] = dbAttachments.map(att => ({
     id: att.id,
     note_id: att.note_id,
     name: att.name,
     file_type: att.file_type,
     file_size: att.file_size,
     file_url: att.file_url,
-    uploaded_at: new Date(att.uploaded_at)
-  }))
-});
+    uploaded_at: new Date(att.uploaded_at),
+  }));
 
-export const filterAndSortNotes = (notes: Note[], searchTerm: string): Note[] => {
-  return notes
-    .filter(note => 
-      note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (a.is_pinned && !b.is_pinned) return -1;
-      if (!a.is_pinned && b.is_pinned) return 1;
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-    });
-};
+  return {
+    id: dbNote.id,
+    user_id: dbNote.user_id,
+    title: dbNote.title || 'Sem título',
+    content: dbNote.content || '',
+    color: dbNote.color || '#3B82F6',
+    cover_image_url: dbNote.cover_image_url,
+    attachments,
+    is_pinned: dbNote.is_pinned || false,
+    created_at: new Date(dbNote.created_at || Date.now()),
+    updated_at: new Date(dbNote.updated_at || Date.now()),
+  };
+}
+
+export function filterAndSortNotes(notes: Note[], searchTerm: string): Note[] {
+  let filteredNotes = notes;
+
+  // Filtrar por termo de busca se fornecido
+  if (searchTerm.trim()) {
+    const term = searchTerm.toLowerCase();
+    filteredNotes = notes.filter(note => 
+      note.title.toLowerCase().includes(term) ||
+      note.content.toLowerCase().includes(term)
+    );
+  }
+
+  // Ordenar: notas fixadas primeiro, depois por data de atualização (mais recentes primeiro)
+  return filteredNotes.sort((a, b) => {
+    // Primeiro critério: notas fixadas vêm primeiro
+    if (a.is_pinned && !b.is_pinned) return -1;
+    if (!a.is_pinned && b.is_pinned) return 1;
+    
+    // Segundo critério: data de atualização (mais recente primeiro)
+    return b.updated_at.getTime() - a.updated_at.getTime();
+  });
+}
