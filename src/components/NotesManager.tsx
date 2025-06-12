@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NotesSearch from '@/components/NotesSearch';
@@ -46,7 +45,7 @@ const NotesManager: React.FC<NotesManagerProps> = ({ renderHeader }) => {
       console.log('New note created:', newNote);
       if (newNote) {
         if (isMobile) {
-          navigate(`/note/${newNote.id}`);
+          navigate(`/note/${newNote.id}?edit=true`);
         } else {
           setSelectedNote(newNote);
           setIsEditing(true);

@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/useTheme';
@@ -14,8 +14,21 @@ const NotePage = () => {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
   const { notes, saveNote } = useNotes();
+  const [searchParams] = useSearchParams();
+  const [isEditing, setIsEditing] = useState(false);
   
   const note = notes.find(n => n.id === noteId);
+  
+  useEffect(() => {
+    // Se o parâmetro edit=true estiver presente, abrir em modo de edição
+    if (searchParams.get('edit') === 'true') {
+      setIsEditing(true);
+      // Limpar o parâmetro da URL
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('edit');
+      navigate(`/note/${noteId}?${newSearchParams.toString()}`, { replace: true });
+    }
+  }, [searchParams, navigate, noteId]);
   
   if (!note) {
     return (
@@ -44,6 +57,15 @@ const NotePage = () => {
 
   const handleNoteSave = async (noteData: Partial<typeof note>) => {
     await saveNote(note.id, noteData);
+    setIsEditing(false);
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
   };
 
   return (
@@ -70,10 +92,10 @@ const NotePage = () => {
             <div className="max-w-4xl mx-auto">
               <NoteEditor
                 note={note}
-                isEditing={false}
+                isEditing={isEditing}
                 onSave={handleNoteSave}
-                onEdit={() => {}}
-                onCancel={() => {}}
+                onEdit={handleEdit}
+                onCancel={handleCancel}
               />
             </div>
           </main>
