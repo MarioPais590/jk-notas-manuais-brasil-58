@@ -5,8 +5,7 @@ import { Pin, Paperclip } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Note } from '@/types/Note';
 import NoteActions from './NoteActions';
-import { formatDate, truncateContent } from '@/utils/noteFormatters';
-import { processTextWithLinksAndLineBreaks } from '@/utils/linkProcessor';
+import { formatDate } from '@/utils/noteFormatters';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface NoteCardProps {
@@ -30,10 +29,6 @@ const NoteCard: React.FC<NoteCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  
-  // Truncar o conteúdo e depois processar links apenas se o conteúdo não foi truncado
-  const truncatedContent = truncateContent(note.content);
-  const shouldProcessLinks = truncatedContent === note.content;
 
   const handleCardClick = () => {
     if (isMobile) {
@@ -82,14 +77,6 @@ const NoteCard: React.FC<NoteCardProps> = ({
             />
           </div>
         )}
-
-        <div className="text-sm text-muted-foreground mb-2 line-clamp-3">
-          {shouldProcessLinks ? (
-            processTextWithLinksAndLineBreaks(truncatedContent)
-          ) : (
-            truncatedContent
-          )}
-        </div>
 
         {note.attachments && note.attachments.length > 0 && (
           <div className="mb-2">
