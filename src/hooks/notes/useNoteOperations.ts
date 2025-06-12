@@ -116,6 +116,7 @@ export function useNoteOperations(
 
   const togglePinNote = async (noteId: string): Promise<boolean> => {
     if (!user) {
+      console.error('togglePinNote: No user authenticated');
       toast({
         title: "Erro de autenticação",
         description: "Você precisa estar logado para fixar notas.",
@@ -127,6 +128,7 @@ export function useNoteOperations(
     try {
       const note = notes.find(n => n.id === noteId);
       if (!note) {
+        console.error('togglePinNote: Note not found:', noteId);
         toast({
           title: "Erro",
           description: "Nota não encontrada.",
@@ -138,6 +140,7 @@ export function useNoteOperations(
       // Verificar se está tentando fixar e já tem 5 notas fixadas
       if (!note.is_pinned) {
         const pinnedNotesCount = notes.filter(n => n.is_pinned).length;
+        console.log('Current pinned notes count:', pinnedNotesCount);
         if (pinnedNotesCount >= 5) {
           toast({
             title: "Limite atingido",
@@ -148,21 +151,45 @@ export function useNoteOperations(
         }
       }
 
-      console.log('Toggling pin for note:', noteId, 'current:', note.is_pinned);
+      const newPinnedState = !note.is_pinned;
+      console.log('togglePinNote: Attempting to change pin status', {
+        noteId,
+        currentState: note.is_pinned,
+        newState: newPinnedState,
+        userId: user.id
+      });
+
       const { data, error } = await supabase
         .from('notes')
-        .update({ is_pinned: !note.is_pinned })
+        .update({ is_pinned: newPinnedState })
         .eq('id', noteId)
         .eq('user_id', user.id)
         .select()
         .single();
 
       if (error) {
-        console.error('Error toggling pin:', error);
-        throw error;
+        console.error('togglePinNote: Database error:', error);
+        toast({
+          title: "Erro ao fixar nota",
+          description: `Erro no banco de dados: ${error.message}`,
+          variant: "destructive",
+        });
+        return false;
       }
 
+      if (!data) {
+        console.error('togglePinNote: No data returned from update');
+        toast({
+          title: "Erro ao fixar nota",
+          description: "Nenhum dado retornado pela operação. Verifique se a nota existe.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      console.log('togglePinNote: Successfully updated note:', data);
       const updatedNote = convertDatabaseNote(data);
+      
       setNotes(prev => {
         const updatedNotes = prev.map(n => n.id === noteId ? { ...n, ...updatedNote } : n);
         // Reorganizar: notas fixadas primeiro, depois por data de atualização
@@ -174,16 +201,16 @@ export function useNoteOperations(
       });
 
       toast({
-        title: note.is_pinned ? "Nota desafixada" : "Nota fixada",
-        description: note.is_pinned ? "A nota foi desafixada." : "A nota foi fixada no topo da lista.",
+        title: newPinnedState ? "Nota fixada" : "Nota desafixada",
+        description: newPinnedState ? "A nota foi fixada no topo da lista." : "A nota foi desafixada.",
       });
 
       return true;
-    } catch (error) {
-      console.error('Error toggling pin:', error);
+    } catch (error: any) {
+      console.error('togglePinNote: Unexpected error:', error);
       toast({
         title: "Erro ao fixar nota",
-        description: "Não foi possível alterar o status da nota. Verifique sua conexão.",
+        description: `Erro inesperado: ${error.message || 'Verifique sua conexão.'}`,
         variant: "destructive",
       });
       return false;
