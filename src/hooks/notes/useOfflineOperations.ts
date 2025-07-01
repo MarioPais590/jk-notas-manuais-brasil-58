@@ -60,6 +60,7 @@ export function useOfflineOperations(
           title: tempNote.title,
           content: tempNote.content,
           color: tempNote.color,
+          cover_image_url: tempNote.cover_image_url,
         },
       });
 
@@ -80,11 +81,26 @@ export function useOfflineOperations(
       const currentNote = notes.find(n => n.id === noteId);
       if (!currentNote) return null;
 
+      // CORREÇÃO CRÍTICA: preservar campos não modificados, especialmente cover_image_url
       const updatedNote: Note = { 
-        ...currentNote, 
-        ...noteData, 
-        updated_at: new Date() 
+        ...currentNote,
+        // Apenas atualizar os campos que foram explicitamente fornecidos
+        ...(noteData.title !== undefined && { title: noteData.title }),
+        ...(noteData.content !== undefined && { content: noteData.content }),
+        ...(noteData.color !== undefined && { color: noteData.color }),
+        ...(noteData.is_pinned !== undefined && { is_pinned: noteData.is_pinned }),
+        // Só atualizar cover_image_url se foi explicitamente fornecido (não undefined)
+        ...(noteData.cover_image_url !== undefined && { cover_image_url: noteData.cover_image_url }),
+        updated_at: new Date()
       };
+
+      console.log('Saving note offline:', {
+        noteId,
+        originalCover: currentNote.cover_image_url,
+        newDataCover: noteData.cover_image_url,
+        finalCover: updatedNote.cover_image_url,
+        noteData
+      });
 
       // Atualizar na lista local
       setNotes(prev => prev.map(note => 
@@ -95,11 +111,23 @@ export function useOfflineOperations(
       await cacheNote(updatedNote);
 
       // Registrar operação apenas se não for uma nota temporária
+      // IMPORTANTE: só incluir campos que foram realmente modificados
       if (!noteId.startsWith('temp-')) {
+        const operationData: Partial<Note> = {};
+        
+        // Só incluir campos que foram explicitamente fornecidos
+        if (noteData.title !== undefined) operationData.title = noteData.title;
+        if (noteData.content !== undefined) operationData.content = noteData.content;
+        if (noteData.color !== undefined) operationData.color = noteData.color;
+        if (noteData.is_pinned !== undefined) operationData.is_pinned = noteData.is_pinned;
+        if (noteData.cover_image_url !== undefined) operationData.cover_image_url = noteData.cover_image_url;
+
+        console.log('Registering offline operation:', { noteId, operationData });
+
         await addOfflineOperation({
           type: 'update',
           noteId,
-          data: noteData,
+          data: operationData,
         });
       }
 

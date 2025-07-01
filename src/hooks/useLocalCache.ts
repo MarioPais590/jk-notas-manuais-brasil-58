@@ -51,6 +51,7 @@ export function useLocalCache() {
     // Monitorar status da conexão
     const handleOnline = () => {
       setIsOnline(true);
+      console.log('Connection restored - now online');
       toast({
         title: "Conectado",
         description: "Conexão restaurada. Sincronizando dados...",
@@ -59,6 +60,7 @@ export function useLocalCache() {
 
     const handleOffline = () => {
       setIsOnline(false);
+      console.log('Connection lost - now offline');
       toast({
         title: "Modo offline",
         description: "Suas alterações serão sincronizadas quando a conexão for restaurada.",
@@ -79,9 +81,9 @@ export function useLocalCache() {
     try {
       await db.open();
       setCacheReady(true);
-      console.log('Cache local inicializado com sucesso');
+      console.log('Local cache initialized successfully');
     } catch (error) {
-      console.error('Erro ao inicializar cache local:', error);
+      console.error('Error initializing local cache:', error);
     }
   };
 
@@ -92,9 +94,9 @@ export function useLocalCache() {
     try {
       await db.notes.clear();
       await db.notes.bulkAdd(notes);
-      console.log('Notas salvas no cache local:', notes.length);
+      console.log('Notes cached locally:', notes.length);
     } catch (error) {
-      console.error('Erro ao salvar notas no cache:', error);
+      console.error('Error caching notes:', error);
     }
   };
 
@@ -104,10 +106,10 @@ export function useLocalCache() {
     
     try {
       const cachedNotes = await db.notes.orderBy('updated_at').reverse().toArray();
-      console.log('Notas carregadas do cache:', cachedNotes.length);
+      console.log('Notes loaded from cache:', cachedNotes.length);
       return cachedNotes;
     } catch (error) {
-      console.error('Erro ao carregar notas do cache:', error);
+      console.error('Error loading cached notes:', error);
       return [];
     }
   };
@@ -118,9 +120,9 @@ export function useLocalCache() {
     
     try {
       await db.notes.put(note);
-      console.log('Nota salva no cache:', note.id);
+      console.log('Note cached:', note.id);
     } catch (error) {
-      console.error('Erro ao salvar nota no cache:', error);
+      console.error('Error caching note:', error);
     }
   };
 
@@ -130,28 +132,57 @@ export function useLocalCache() {
     
     try {
       await db.notes.delete(noteId);
-      console.log('Nota removida do cache:', noteId);
+      console.log('Note removed from cache:', noteId);
     } catch (error) {
-      console.error('Erro ao remover nota do cache:', error);
+      console.error('Error removing note from cache:', error);
     }
   };
 
-  // Cache de imagens
+  // Cache de imagens melhorado para PWA mobile
   const cacheImage = async (url: string): Promise<string> => {
-    if (!cacheReady || !url || url.startsWith('blob:')) return url;
+    if (!cacheReady || !url || url.startsWith('blob:') || url.startsWith('data:')) {
+      console.log('Skipping cache for URL:', url);
+      return url;
+    }
     
     try {
+      console.log('Attempting to cache image:', url);
+      
       // Verificar se já está em cache
       const cached = await db.cachedImages.where('url').equals(url).first();
       if (cached) {
-        return URL.createObjectURL(cached.blob);
+        console.log('Image already cached:', url);
+        const blobUrl = URL.createObjectURL(cached.blob);
+        console.log('Returning cached blob URL:', blobUrl);
+        return blobUrl;
       }
 
-      // Baixar e salvar a imagem
-      const response = await fetch(url);
-      if (!response.ok) return url;
+      console.log('Downloading image for cache:', url);
+      
+      // Configurar fetch com headers para melhor compatibilidade com PWA/mobile
+      const response = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        cache: 'force-cache',
+        headers: {
+          'Accept': 'image/*,*/*;q=0.8',
+        }
+      });
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch image:', response.status, response.statusText);
+        return url;
+      }
       
       const blob = await response.blob();
+      console.log('Image downloaded, size:', blob.size, 'type:', blob.type);
+      
+      // Verificar se é realmente uma imagem
+      if (!blob.type.startsWith('image/')) {
+        console.warn('Downloaded content is not an image:', blob.type);
+        return url;
+      }
+      
       const cachedImage: CachedImage = {
         id: crypto.randomUUID(),
         url,
@@ -160,25 +191,33 @@ export function useLocalCache() {
       };
 
       await db.cachedImages.add(cachedImage);
-      return URL.createObjectURL(blob);
+      const blobUrl = URL.createObjectURL(blob);
+      console.log('Image cached successfully:', url, 'blob URL:', blobUrl);
+      return blobUrl;
     } catch (error) {
-      console.error('Erro ao fazer cache da imagem:', error);
+      console.error('Error caching image:', url, error);
       return url;
     }
   };
 
   // Carregar imagem do cache
   const loadCachedImage = async (url: string): Promise<string> => {
-    if (!cacheReady || !url || url.startsWith('blob:')) return url;
+    if (!cacheReady || !url || url.startsWith('blob:') || url.startsWith('data:')) {
+      return url;
+    }
     
     try {
+      console.log('Looking for cached image:', url);
       const cached = await db.cachedImages.where('url').equals(url).first();
       if (cached) {
-        return URL.createObjectURL(cached.blob);
+        const blobUrl = URL.createObjectURL(cached.blob);
+        console.log('Found cached image:', url, 'returning blob URL:', blobUrl);
+        return blobUrl;
       }
+      console.log('No cached version found for:', url);
       return url;
     } catch (error) {
-      console.error('Erro ao carregar imagem do cache:', error);
+      console.error('Error loading cached image:', url, error);
       return url;
     }
   };
@@ -195,9 +234,9 @@ export function useLocalCache() {
       };
 
       await db.pendingOperations.add(pendingOp);
-      console.log('Operação pendente adicionada:', pendingOp);
+      console.log('Pending operation added:', pendingOp);
     } catch (error) {
-      console.error('Erro ao adicionar operação pendente:', error);
+      console.error('Error adding pending operation:', error);
     }
   };
 
@@ -207,7 +246,7 @@ export function useLocalCache() {
     try {
       return await db.pendingOperations.orderBy('timestamp').toArray();
     } catch (error) {
-      console.error('Erro ao carregar operações pendentes:', error);
+      console.error('Error loading pending operations:', error);
       return [];
     }
   };
@@ -217,9 +256,9 @@ export function useLocalCache() {
     
     try {
       await db.pendingOperations.delete(operationId);
-      console.log('Operação pendente removida:', operationId);
+      console.log('Pending operation removed:', operationId);
     } catch (error) {
-      console.error('Erro ao remover operação pendente:', error);
+      console.error('Error removing pending operation:', error);
     }
   };
 
@@ -228,9 +267,9 @@ export function useLocalCache() {
     
     try {
       await db.pendingOperations.clear();
-      console.log('Todas as operações pendentes foram removidas');
+      console.log('All pending operations cleared');
     } catch (error) {
-      console.error('Erro ao limpar operações pendentes:', error);
+      console.error('Error clearing pending operations:', error);
     }
   };
 
@@ -240,10 +279,12 @@ export function useLocalCache() {
     
     try {
       const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-      await db.cachedImages.where('timestamp').below(thirtyDaysAgo).delete();
-      console.log('Cache antigo limpo');
+      const deletedCount = await db.cachedImages.where('timestamp').below(thirtyDaysAgo).delete();
+      if (deletedCount > 0) {
+        console.log('Cleaned old cache entries:', deletedCount);
+      }
     } catch (error) {
-      console.error('Erro ao limpar cache antigo:', error);
+      console.error('Error cleaning old cache:', error);
     }
   };
 

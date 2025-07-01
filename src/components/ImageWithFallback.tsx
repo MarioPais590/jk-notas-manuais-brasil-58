@@ -37,9 +37,12 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
         src={src}
         alt={alt}
         className={className}
-        onLoad={() => setImageLoading(false)}
-        onError={() => {
-          console.error('Failed to load image:', src);
+        onLoad={() => {
+          console.log('Image loaded successfully:', src);
+          setImageLoading(false);
+        }}
+        onError={(e) => {
+          console.error('Failed to load image:', src, e);
           setImageError(true);
           setImageLoading(false);
         }}
@@ -47,6 +50,9 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
           display: imageLoading ? 'none' : 'block',
           imageRendering: 'crisp-edges'
         }}
+        // Adicionar atributos para melhor compatibilidade com PWA mobile
+        crossOrigin="anonymous"
+        loading="lazy"
       />
     </div>
   );

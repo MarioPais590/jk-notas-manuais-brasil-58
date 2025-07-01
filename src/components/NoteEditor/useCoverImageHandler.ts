@@ -17,11 +17,61 @@ export function useCoverImageHandler(
   const { isOnline, cacheImage, loadCachedImage } = useLocalCache();
 
   const loadCoverImage = async (coverImageUrl: string | null) => {
-    if (coverImageUrl) {
-      const cachedImageUrl = await loadCachedImage(coverImageUrl);
-      setCoverImage(cachedImageUrl);
-    } else {
+    if (!coverImageUrl) {
       setCoverImage(null);
+      return;
+    }
+
+    try {
+      console.log('Loading cover image:', coverImageUrl);
+      
+      // Primeiro tenta carregar do cache local
+      const cachedImageUrl = await loadCachedImage(coverImageUrl);
+      console.log('Cached image URL:', cachedImageUrl);
+      
+      // Se a URL do cache é diferente da original, significa que temos uma versão local
+      if (cachedImageUrl !== coverImageUrl) {
+        console.log('Using cached image for cover');
+        setCoverImage(cachedImageUrl);
+      } else if (isOnline) {
+        // Se estamos online e não temos cache, tenta carregar e fazer cache
+        console.log('Online: loading and caching image');
+        try {
+          // Verificar se a imagem existe e é acessível
+          const response = await fetch(coverImageUrl, { method: 'HEAD' });
+          if (response.ok) {
+            setCoverImage(coverImageUrl);
+            // Fazer cache em background
+            setTimeout(async () => {
+              try {
+                await cacheImage(coverImageUrl);
+                console.log('Image cached successfully:', coverImageUrl);
+              } catch (error) {
+                console.error('Error caching image:', error);
+              }
+            }, 100);
+          } else {
+            console.warn('Image not accessible:', coverImageUrl);
+            setCoverImage(null);
+          }
+        } catch (error) {
+          console.error('Error checking image accessibility:', error);
+          // Em caso de erro, ainda tenta exibir a imagem
+          setCoverImage(coverImageUrl);
+        }
+      } else {
+        // Offline e sem cache - não exibir a imagem
+        console.log('Offline: no cached image available');
+        setCoverImage(null);
+      }
+    } catch (error) {
+      console.error('Error loading cover image:', error);
+      // Fallback: tentar exibir a URL original se disponível
+      if (isOnline && coverImageUrl) {
+        setCoverImage(coverImageUrl);
+      } else {
+        setCoverImage(null);
+      }
     }
   };
 
@@ -81,7 +131,14 @@ export function useCoverImageHandler(
         setCoverImage(publicUrl);
         
         // Cache da imagem após upload
-        await cacheImage(publicUrl);
+        setTimeout(async () => {
+          try {
+            await cacheImage(publicUrl);
+            console.log('Uploaded image cached:', publicUrl);
+          } catch (error) {
+            console.error('Error caching uploaded image:', error);
+          }
+        }, 100);
       } else {
         // Se offline, usar apenas o preview local
         setCoverImage(previewUrl);

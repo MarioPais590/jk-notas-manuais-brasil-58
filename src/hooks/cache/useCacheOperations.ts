@@ -19,15 +19,17 @@ export function useCacheOperations() {
     // Cache da imagem de capa se existir e não for um blob temporário
     if (note.cover_image_url && !note.cover_image_url.startsWith('blob:') && !note.cover_image_url.startsWith('data:')) {
       try {
+        console.log('Caching cover image for note:', note.id, note.cover_image_url);
         await cacheImage(note.cover_image_url);
-        console.log('Imagem de capa cacheada para nota:', note.id);
+        console.log('Cover image cached successfully for note:', note.id);
       } catch (error) {
-        console.error('Erro ao cachear imagem de capa:', error);
+        console.error('Error caching cover image for note', note.id, ':', error);
       }
     }
   };
 
   const cacheNotesWithImages = async (notes: Note[]) => {
+    console.log('Caching notes and images:', notes.length);
     await cacheNotes(notes);
     
     // Cache das imagens de capa em paralelo para melhor performance
@@ -37,23 +39,31 @@ export function useCacheOperations() {
         !note.cover_image_url.startsWith('data:'))
       .map(async (note) => {
         try {
+          console.log('Starting cache for image:', note.id, note.cover_image_url);
           await cacheImage(note.cover_image_url!);
-          console.log('Imagem cacheada:', note.id);
+          console.log('Image cached successfully:', note.id);
         } catch (error) {
-          console.error('Erro ao cachear imagem da nota', note.id, ':', error);
+          console.error('Error caching image for note', note.id, ':', error);
         }
       });
     
     if (imagePromises.length > 0) {
+      console.log('Waiting for', imagePromises.length, 'images to cache...');
       await Promise.allSettled(imagePromises);
-      console.log('Cache de imagens concluído para', imagePromises.length, 'imagens');
+      console.log('Image caching completed for', imagePromises.length, 'images');
     }
   };
 
   const loadNotesWithCachedImages = async (): Promise<Note[]> => {
+    console.log('Loading notes with cached images...');
     const cachedNotes = await loadCachedNotes();
     
-    if (cachedNotes.length === 0) return [];
+    if (cachedNotes.length === 0) {
+      console.log('No cached notes found');
+      return [];
+    }
+    
+    console.log('Found', cachedNotes.length, 'cached notes');
     
     // Processar imagens do cache em paralelo
     const notesWithCachedImages = await Promise.all(
@@ -62,10 +72,12 @@ export function useCacheOperations() {
             !note.cover_image_url.startsWith('blob:') && 
             !note.cover_image_url.startsWith('data:')) {
           try {
+            console.log('Loading cached image for note:', note.id, note.cover_image_url);
             const cachedImageUrl = await loadCachedImage(note.cover_image_url);
+            console.log('Cached image loaded for note:', note.id, 'new URL:', cachedImageUrl);
             return { ...note, cover_image_url: cachedImageUrl };
           } catch (error) {
-            console.error('Erro ao carregar imagem do cache para nota', note.id, ':', error);
+            console.error('Error loading cached image for note', note.id, ':', error);
             return note; // Retornar nota sem a imagem em caso de erro
           }
         }
@@ -73,7 +85,7 @@ export function useCacheOperations() {
       })
     );
     
-    console.log('Notas carregadas com imagens do cache:', notesWithCachedImages.length);
+    console.log('Notes loaded with cached images:', notesWithCachedImages.length);
     return notesWithCachedImages;
   };
 
