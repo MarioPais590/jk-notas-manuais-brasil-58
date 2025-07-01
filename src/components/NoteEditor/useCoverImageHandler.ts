@@ -14,7 +14,7 @@ export function useCoverImageHandler(
   setUploadingCover: (uploading: boolean) => void
 ) {
   const { toast } = useToast();
-  const { isOnline, cacheImage, loadCachedImage } = useLocalCache();
+  const { isOnline, cacheImage, loadCachedImage, autoCacheImage } = useLocalCache();
 
   const loadCoverImage = async (coverImageUrl: string | null) => {
     if (!coverImageUrl) {
@@ -33,31 +33,50 @@ export function useCoverImageHandler(
       if (cachedImageUrl !== coverImageUrl) {
         console.log('Using cached image for cover');
         setCoverImage(cachedImageUrl);
-      } else if (isOnline) {
-        // Se estamos online e não temos cache, tenta carregar e fazer cache
-        console.log('Online: loading and caching image');
+        return;
+      }
+
+      if (isOnline) {
+        console.log('Online: loading and verifying image accessibility');
+        
+        // Verificar se a imagem é acessível antes de definir
         try {
-          // Verificar se a imagem existe e é acessível
-          const response = await fetch(coverImageUrl, { method: 'HEAD' });
-          if (response.ok) {
-            setCoverImage(coverImageUrl);
-            // Fazer cache em background
-            setTimeout(async () => {
-              try {
-                await cacheImage(coverImageUrl);
-                console.log('Image cached successfully:', coverImageUrl);
-              } catch (error) {
-                console.error('Error caching image:', error);
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          
+          await new Promise((resolve, reject) => {
+            img.onload = () => {
+              console.log('Image verified as accessible:', coverImageUrl);
+              setCoverImage(coverImageUrl);
+              
+              // Auto-cache em background
+              autoCacheImage(coverImageUrl);
+              resolve(true);
+            };
+            
+            img.onerror = (error) => {
+              console.error('Image not accessible:', coverImageUrl, error);
+              setCoverImage(null);
+              reject(error);
+            };
+            
+            // Timeout para PWA mobile
+            setTimeout(() => {
+              if (!img.complete) {
+                console.warn('Image load timeout:', coverImageUrl);
+                setCoverImage(coverImageUrl); // Tentar exibir mesmo assim
+                autoCacheImage(coverImageUrl);
+                resolve(true);
               }
-            }, 100);
-          } else {
-            console.warn('Image not accessible:', coverImageUrl);
-            setCoverImage(null);
-          }
+            }, 10000);
+            
+            img.src = coverImageUrl;
+          });
         } catch (error) {
-          console.error('Error checking image accessibility:', error);
-          // Em caso de erro, ainda tenta exibir a imagem
+          console.error('Error verifying image:', error);
+          // Fallback: tentar exibir a imagem mesmo com erro
           setCoverImage(coverImageUrl);
+          autoCacheImage(coverImageUrl);
         }
       } else {
         // Offline e sem cache - não exibir a imagem
@@ -69,6 +88,7 @@ export function useCoverImageHandler(
       // Fallback: tentar exibir a URL original se disponível
       if (isOnline && coverImageUrl) {
         setCoverImage(coverImageUrl);
+        autoCacheImage(coverImageUrl);
       } else {
         setCoverImage(null);
       }

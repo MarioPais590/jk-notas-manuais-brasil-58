@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pin, Paperclip } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,6 +7,8 @@ import { Note } from '@/types/Note';
 import NoteActions from './NoteActions';
 import { formatDate } from '@/utils/noteFormatters';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useLocalCache } from '@/hooks/useLocalCache';
+import ImageWithFallback from './ImageWithFallback';
 
 interface NoteCardProps {
   note: Note;
@@ -29,6 +31,33 @@ const NoteCard: React.FC<NoteCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { loadCachedImage, autoCacheImage, isOnline } = useLocalCache();
+  const [coverImageSrc, setCoverImageSrc] = useState<string | null>(note.cover_image_url);
+
+  useEffect(() => {
+    const loadCoverImage = async () => {
+      if (!note.cover_image_url) {
+        setCoverImageSrc(null);
+        return;
+      }
+
+      try {
+        // Tentar carregar do cache primeiro
+        const cachedUrl = await loadCachedImage(note.cover_image_url);
+        setCoverImageSrc(cachedUrl);
+
+        // Se online e não é uma URL blob, fazer auto-cache
+        if (isOnline && !cachedUrl.startsWith('blob:') && cachedUrl === note.cover_image_url) {
+          autoCacheImage(note.cover_image_url);
+        }
+      } catch (error) {
+        console.error('Error loading cover image for note card:', error);
+        setCoverImageSrc(note.cover_image_url);
+      }
+    };
+
+    loadCoverImage();
+  }, [note.cover_image_url, loadCachedImage, autoCacheImage, isOnline]);
 
   const handleCardClick = () => {
     if (isMobile) {
@@ -68,12 +97,13 @@ const NoteCard: React.FC<NoteCardProps> = ({
           />
         </div>
 
-        {note.cover_image_url && (
+        {coverImageSrc && (
           <div className="mb-2">
-            <img
-              src={note.cover_image_url}
+            <ImageWithFallback
+              src={coverImageSrc}
               alt="Capa da nota"
               className="w-full h-20 object-cover rounded"
+              fallbackText="Erro ao carregar capa"
             />
           </div>
         )}

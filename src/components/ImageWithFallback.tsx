@@ -17,7 +17,7 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
-  // If no src provided or we had an error loading, show fallback
+  // Se não há src ou houve erro, mostrar fallback
   if (!src || imageError) {
     return (
       <div className={`bg-muted flex items-center justify-center text-muted-foreground text-sm ${className}`}>
@@ -48,11 +48,15 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
         }}
         style={{ 
           display: imageLoading ? 'none' : 'block',
-          imageRendering: 'crisp-edges'
+          imageRendering: 'auto',
+          maxWidth: '100%',
+          height: 'auto'
         }}
-        // Adicionar atributos para melhor compatibilidade com PWA mobile
+        // Melhorar compatibilidade com PWA mobile
         crossOrigin="anonymous"
         loading="lazy"
+        referrerPolicy="no-referrer"
+        decoding="async"
       />
     </div>
   );

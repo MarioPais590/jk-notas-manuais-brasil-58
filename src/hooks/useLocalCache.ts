@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import Dexie, { Table } from 'dexie';
 import { Note, NoteAttachment } from '@/types/Note';
@@ -138,7 +137,7 @@ export function useLocalCache() {
     }
   };
 
-  // Cache de imagens melhorado para PWA mobile
+  // Cache de imagens otimizado para PWA mobile
   const cacheImage = async (url: string): Promise<string> => {
     if (!cacheReady || !url || url.startsWith('blob:') || url.startsWith('data:')) {
       console.log('Skipping cache for URL:', url);
@@ -159,15 +158,22 @@ export function useLocalCache() {
 
       console.log('Downloading image for cache:', url);
       
-      // Configurar fetch com headers para melhor compatibilidade com PWA/mobile
+      // Configurar fetch otimizado para PWA mobile
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      
       const response = await fetch(url, {
         method: 'GET',
         mode: 'cors',
         cache: 'force-cache',
+        signal: controller.signal,
         headers: {
-          'Accept': 'image/*,*/*;q=0.8',
+          'Accept': 'image/webp,image/avif,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          'User-Agent': navigator.userAgent
         }
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         console.warn('Failed to fetch image:', response.status, response.statusText);
@@ -200,7 +206,7 @@ export function useLocalCache() {
     }
   };
 
-  // Carregar imagem do cache
+  // Carregar imagem do cache com fallback melhorado
   const loadCachedImage = async (url: string): Promise<string> => {
     if (!cacheReady || !url || url.startsWith('blob:') || url.startsWith('data:')) {
       return url;
@@ -219,6 +225,34 @@ export function useLocalCache() {
     } catch (error) {
       console.error('Error loading cached image:', url, error);
       return url;
+    }
+  };
+
+  // Cache automático de imagem quando online
+  const autoCacheImage = async (url: string): Promise<void> => {
+    if (!isOnline || !url || url.startsWith('blob:') || url.startsWith('data:')) {
+      return;
+    }
+
+    try {
+      // Verificar se já está em cache
+      const cached = await db.cachedImages.where('url').equals(url).first();
+      if (cached) {
+        console.log('Image already cached, skipping auto-cache:', url);
+        return;
+      }
+
+      // Cache em background sem bloquear a UI
+      setTimeout(async () => {
+        try {
+          await cacheImage(url);
+          console.log('Auto-cached image:', url);
+        } catch (error) {
+          console.error('Error auto-caching image:', error);
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Error in auto-cache check:', error);
     }
   };
 
@@ -297,6 +331,7 @@ export function useLocalCache() {
     removeCachedNote,
     cacheImage,
     loadCachedImage,
+    autoCacheImage,
     addPendingOperation,
     getPendingOperations,
     removePendingOperation,
