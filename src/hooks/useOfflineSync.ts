@@ -33,6 +33,7 @@ export function useOfflineSync() {
     try {
       const operations = await getPendingOperations();
       setPendingOperations(operations);
+      console.log('Operações pendentes carregadas:', operations.length);
     } catch (error) {
       console.error('Error loading pending operations:', error);
     }
@@ -41,12 +42,14 @@ export function useOfflineSync() {
   const addOfflineOperation = async (operation: Omit<OfflineOperation, 'id' | 'timestamp'>) => {
     const newOperation: OfflineOperation = {
       ...operation,
-      id: crypto.randomUUID(),
+      id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       timestamp: Date.now(),
     };
 
     await addPendingOperation(newOperation);
     setPendingOperations(prev => [...prev, newOperation]);
+    
+    console.log('Operação offline adicionada:', newOperation.type, newOperation.id);
     
     if (!isOnline) {
       toast({
@@ -59,11 +62,13 @@ export function useOfflineSync() {
   const clearOfflineOperations = async () => {
     await clearPendingOperations();
     setPendingOperations([]);
+    console.log('Todas as operações offline foram limpas');
   };
 
   const removeOfflineOperation = async (operationId: string) => {
     await removePendingOperation(operationId);
     setPendingOperations(prev => prev.filter(op => op.id !== operationId));
+    console.log('Operação offline removida:', operationId);
   };
 
   return {

@@ -35,8 +35,9 @@ export function useOfflineOperations(
       return newNote;
     } else {
       // Criar nota localmente quando offline
-      const tempNote = {
-        id: `temp-${Date.now()}`,
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const tempNote: Note = {
+        id: tempId,
         user_id: user?.id || '',
         title: 'Nova Nota',
         content: '',
@@ -48,10 +49,12 @@ export function useOfflineOperations(
         attachments: [],
       };
 
+      // Adicionar à lista local imediatamente
       setNotes(prev => [tempNote, ...prev]);
       await cacheNote(tempNote);
       
-      addOfflineOperation({
+      // Registrar operação para sincronização posterior
+      await addOfflineOperation({
         type: 'create',
         data: {
           title: tempNote.title,
@@ -60,6 +63,7 @@ export function useOfflineOperations(
         },
       });
 
+      console.log('Nota criada offline:', tempId);
       return tempNote;
     }
   };
@@ -73,22 +77,34 @@ export function useOfflineOperations(
       return savedNote;
     } else {
       // Salvar localmente quando offline
-      const updatedNote = { ...notes.find(n => n.id === noteId), ...noteData, updated_at: new Date() };
+      const currentNote = notes.find(n => n.id === noteId);
+      if (!currentNote) return null;
+
+      const updatedNote: Note = { 
+        ...currentNote, 
+        ...noteData, 
+        updated_at: new Date() 
+      };
+
+      // Atualizar na lista local
       setNotes(prev => prev.map(note => 
         note.id === noteId ? updatedNote : note
       ));
 
-      if (updatedNote) {
-        await cacheNote(updatedNote);
+      // Salvar no cache
+      await cacheNote(updatedNote);
+
+      // Registrar operação apenas se não for uma nota temporária
+      if (!noteId.startsWith('temp-')) {
+        await addOfflineOperation({
+          type: 'update',
+          noteId,
+          data: noteData,
+        });
       }
 
-      addOfflineOperation({
-        type: 'update',
-        noteId,
-        data: noteData,
-      });
-
-      return updatedNote || null;
+      console.log('Nota salva offline:', noteId);
+      return updatedNote;
     }
   };
 
@@ -101,11 +117,16 @@ export function useOfflineOperations(
       setNotes(prev => prev.filter(note => note.id !== noteId));
       await removeCachedNote(noteId);
 
-      addOfflineOperation({
-        type: 'delete',
-        noteId,
-        data: {},
-      });
+      // Registrar operação apenas se não for uma nota temporária
+      if (!noteId.startsWith('temp-')) {
+        await addOfflineOperation({
+          type: 'delete',
+          noteId,
+          data: {},
+        });
+      }
+
+      console.log('Nota removida offline:', noteId);
     }
   };
 
