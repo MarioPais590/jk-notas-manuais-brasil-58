@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import ShareModal from '@/components/ShareModal';
@@ -10,6 +11,7 @@ import { Note } from '@/types/Note';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { processImageForCover, COVER_IMAGE_CONFIG } from '@/utils/imageProcessor';
+import { useLocalCache } from '@/hooks/useLocalCache';
 
 interface NoteEditorProps {
   note: Note;
@@ -34,13 +36,23 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   const [uploadingCover, setUploadingCover] = useState(false);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const { toast } = useToast();
+  const { isOnline, cacheImage, loadCachedImage } = useLocalCache();
 
   useEffect(() => {
     setTitle(note.title);
     setContent(note.content);
-    setCoverImage(note.cover_image_url);
+    loadCoverImage();
     setCoverPreview(null);
   }, [note]);
+
+  const loadCoverImage = async () => {
+    if (note.cover_image_url) {
+      const cachedImageUrl = await loadCachedImage(note.cover_image_url);
+      setCoverImage(cachedImageUrl);
+    } else {
+      setCoverImage(null);
+    }
+  };
 
   const handleSave = () => {
     if (!title.trim()) {
@@ -87,43 +99,55 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       const previewUrl = URL.createObjectURL(processedImage.file);
       setCoverPreview(previewUrl);
 
-      // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        throw new Error('Usuário não autenticado');
-      }
-      
-      const timestamp = Date.now();
-      const fileName = `${user.id}/covers/${note.id}/${timestamp}.png`;
+      if (isOnline) {
+        // Se online, fazer upload para Supabase
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError || !user) {
+          throw new Error('Usuário não autenticado');
+        }
+        
+        const timestamp = Date.now();
+        const fileName = `${user.id}/covers/${note.id}/${timestamp}.png`;
 
-      console.log('Uploading processed cover image to:', fileName);
+        console.log('Uploading processed cover image to:', fileName);
 
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('note-attachments')
-        .upload(fileName, processedImage.file, {
-          cacheControl: '3600',
-          upsert: false
+        const { data, error } = await supabase.storage
+          .from('note-attachments')
+          .upload(fileName, processedImage.file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (error) {
+          console.error('Cover image upload error:', error);
+          throw error;
+        }
+
+        console.log('Cover image uploaded:', data);
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('note-attachments')
+          .getPublicUrl(fileName);
+
+        console.log('Cover image public URL:', publicUrl);
+        setCoverImage(publicUrl);
+        
+        // Cache da imagem após upload
+        await cacheImage(publicUrl);
+      } else {
+        // Se offline, usar apenas o preview local
+        setCoverImage(previewUrl);
+        
+        toast({
+          title: "Modo offline",
+          description: "A imagem será sincronizada quando você estiver online.",
+          variant: "destructive",
         });
-
-      if (error) {
-        console.error('Cover image upload error:', error);
-        throw error;
       }
-
-      console.log('Cover image uploaded:', data);
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('note-attachments')
-        .getPublicUrl(fileName);
-
-      console.log('Cover image public URL:', publicUrl);
-      setCoverImage(publicUrl);
       
-      // Limpar preview após upload bem-sucedido
-      if (coverPreview) {
+      // Limpar preview após upload bem-sucedido (apenas se online)
+      if (isOnline && coverPreview) {
         URL.revokeObjectURL(coverPreview);
         setCoverPreview(null);
       }
@@ -145,7 +169,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       });
     } finally {
       setUploadingCover(false);
-      // Clear the input
       event.target.value = '';
     }
   };
@@ -186,6 +209,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         {isEditing && (
           <div className="text-xs text-muted-foreground border rounded-md p-2 bg-muted/50">
             💡 <strong>Capa da nota:</strong> Dimensões: {COVER_IMAGE_CONFIG.width}x{COVER_IMAGE_CONFIG.height}px • Formatos: PNG, JPG, WebP • Máximo: 10MB • Resolução: 300 DPI
+            {!isOnline && <span className="block mt-1 text-amber-600">• Modo offline: imagens serão sincronizadas quando conectado</span>}
           </div>
         )}
 

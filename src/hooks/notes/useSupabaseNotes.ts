@@ -6,6 +6,7 @@ import { useNoteOperations } from './useNoteOperations';
 import { useNoteAttachments } from './useNoteAttachments';
 import { useNoteDeletion } from './useNoteDeletion';
 import { useOfflineSync } from '../useOfflineSync';
+import { useLocalCache } from '../useLocalCache';
 import { filterAndSortNotes } from './utils';
 import { NotesHookReturn } from './types';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,11 +19,22 @@ export function useSupabaseNotes(): NotesHookReturn {
   
   const { 
     isOnline, 
+    cacheReady,
     pendingOperations, 
     addOfflineOperation, 
     clearOfflineOperations,
     removeOfflineOperation 
   } = useOfflineSync();
+
+  const {
+    cacheNotes,
+    loadCachedNotes,
+    cacheNote,
+    removeCachedNote,
+    cacheImage,
+    loadCachedImage,
+    cleanOldCache
+  } = useLocalCache();
   
   const { createNewNote, saveNote, togglePinNote, updateNoteColor } = useNoteOperations(
     user, 
@@ -33,13 +45,70 @@ export function useSupabaseNotes(): NotesHookReturn {
   const { uploadAttachment, removeAttachment } = useNoteAttachments(user, setNotes);
   const { deleteNote } = useNoteDeletion(user, notes, setNotes);
 
+  // Carregar dados inicial (cache primeiro, depois remoto)
   useEffect(() => {
-    if (user) {
-      setTimeout(async () => {
-        await fetchNotes(user, setLoading);
-      }, 100);
+    if (user && cacheReady) {
+      loadInitialData();
     }
-  }, [user]);
+  }, [user, cacheReady]);
+
+  // Limpar cache antigo periodicamente
+  useEffect(() => {
+    if (cacheReady) {
+      cleanOldCache();
+    }
+  }, [cacheReady]);
+
+  const loadInitialData = async () => {
+    try {
+      setLoading(true);
+      
+      // Carregar do cache primeiro (mais rápido)
+      const cachedNotes = await loadCachedNotes();
+      if (cachedNotes.length > 0) {
+        console.log('Carregando notas do cache local primeiro');
+        
+        // Processar imagens do cache
+        const notesWithCachedImages = await Promise.all(
+          cachedNotes.map(async (note) => {
+            if (note.cover_image_url) {
+              const cachedImageUrl = await loadCachedImage(note.cover_image_url);
+              return { ...note, cover_image_url: cachedImageUrl };
+            }
+            return note;
+          })
+        );
+        
+        setNotes(notesWithCachedImages);
+        setLoading(false);
+      }
+
+      // Se estiver online, buscar dados atualizados do servidor
+      if (isOnline && user) {
+        console.log('Buscando dados atualizados do servidor');
+        setTimeout(async () => {
+          await fetchNotes(user, () => {});
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados iniciais:', error);
+      setLoading(false);
+    }
+  };
+
+  // Cache das notas quando atualizadas
+  useEffect(() => {
+    if (notes.length > 0 && cacheReady) {
+      cacheNotes(notes);
+      
+      // Cache das imagens de capa
+      notes.forEach(async (note) => {
+        if (note.cover_image_url && !note.cover_image_url.startsWith('blob:')) {
+          await cacheImage(note.cover_image_url);
+        }
+      });
+    }
+  }, [notes, cacheReady]);
 
   // Sincronizar operações offline quando voltar online
   useEffect(() => {
@@ -76,6 +145,11 @@ export function useSupabaseNotes(): NotesHookReturn {
                 .delete()
                 .eq('id', operation.noteId)
                 .eq('user_id', user.id);
+              
+              // Remover do cache local também
+              if (operation.noteId) {
+                await removeCachedNote(operation.noteId);
+              }
               break;
           }
           
@@ -86,7 +160,7 @@ export function useSupabaseNotes(): NotesHookReturn {
       }
 
       if (pendingOperations.length > 0) {
-        await fetchNotes(user, setLoading);
+        await fetchNotes(user, () => {});
         toast({
           title: "Sincronização concluída",
           description: "Todas as alterações offline foram sincronizadas.",
@@ -100,7 +174,11 @@ export function useSupabaseNotes(): NotesHookReturn {
   // Wrapper para operações que suportam offline
   const createNewNoteOffline = async () => {
     if (isOnline) {
-      return await createNewNote();
+      const newNote = await createNewNote();
+      if (newNote) {
+        await cacheNote(newNote);
+      }
+      return newNote;
     } else {
       // Criar nota localmente quando offline
       const tempNote = {
@@ -117,6 +195,7 @@ export function useSupabaseNotes(): NotesHookReturn {
       };
 
       setNotes(prev => [tempNote, ...prev]);
+      await cacheNote(tempNote);
       
       addOfflineOperation({
         type: 'create',
@@ -133,12 +212,21 @@ export function useSupabaseNotes(): NotesHookReturn {
 
   const saveNoteOffline = async (noteId: string, noteData: Partial<typeof notes[0]>) => {
     if (isOnline) {
-      return await saveNote(noteId, noteData);
+      const savedNote = await saveNote(noteId, noteData);
+      if (savedNote) {
+        await cacheNote(savedNote);
+      }
+      return savedNote;
     } else {
       // Salvar localmente quando offline
+      const updatedNote = { ...notes.find(n => n.id === noteId), ...noteData, updated_at: new Date() };
       setNotes(prev => prev.map(note => 
-        note.id === noteId ? { ...note, ...noteData, updated_at: new Date() } : note
+        note.id === noteId ? updatedNote : note
       ));
+
+      if (updatedNote) {
+        await cacheNote(updatedNote);
+      }
 
       addOfflineOperation({
         type: 'update',
@@ -146,13 +234,38 @@ export function useSupabaseNotes(): NotesHookReturn {
         data: noteData,
       });
 
-      return notes.find(n => n.id === noteId) || null;
+      return updatedNote || null;
+    }
+  };
+
+  const deleteNoteOffline = async (noteId: string) => {
+    if (isOnline) {
+      await deleteNote(noteId);
+      await removeCachedNote(noteId);
+    } else {
+      // Remover localmente quando offline
+      setNotes(prev => prev.filter(note => note.id !== noteId));
+      await removeCachedNote(noteId);
+
+      addOfflineOperation({
+        type: 'delete',
+        noteId,
+        data: {},
+      });
     }
   };
 
   const refetch = async () => {
     if (user) {
-      await fetchNotes(user, setLoading);
+      if (isOnline) {
+        await fetchNotes(user, setLoading);
+      } else {
+        // Se offline, carregar do cache
+        const cachedNotes = await loadCachedNotes();
+        if (cachedNotes.length > 0) {
+          setNotes(cachedNotes);
+        }
+      }
     }
   };
 
@@ -166,7 +279,7 @@ export function useSupabaseNotes(): NotesHookReturn {
     loading,
     createNewNote: createNewNoteOffline,
     saveNote: saveNoteOffline,
-    deleteNote,
+    deleteNote: deleteNoteOffline,
     togglePinNote,
     updateNoteColor,
     uploadAttachment,

@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useLocalCache } from './useLocalCache';
 
 interface OfflineOperation {
   id: string;
@@ -11,61 +12,40 @@ interface OfflineOperation {
 }
 
 export function useOfflineSync() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingOperations, setPendingOperations] = useState<OfflineOperation[]>([]);
   const { toast } = useToast();
+  const {
+    isOnline,
+    cacheReady,
+    addPendingOperation,
+    getPendingOperations,
+    removePendingOperation,
+    clearPendingOperations
+  } = useLocalCache();
 
   useEffect(() => {
-    // Carregar operações pendentes do localStorage
-    const saved = localStorage.getItem('offline-notes-operations');
-    if (saved) {
-      try {
-        const operations = JSON.parse(saved);
-        setPendingOperations(operations);
-      } catch (error) {
-        console.error('Error loading offline operations:', error);
-      }
+    if (cacheReady) {
+      loadPendingOperations();
     }
+  }, [cacheReady]);
 
-    // Monitorar status da conexão
-    const handleOnline = () => {
-      setIsOnline(true);
-      toast({
-        title: "Conectado",
-        description: "Conexão restaurada. Sincronizando dados...",
-      });
-    };
+  const loadPendingOperations = async () => {
+    try {
+      const operations = await getPendingOperations();
+      setPendingOperations(operations);
+    } catch (error) {
+      console.error('Error loading pending operations:', error);
+    }
+  };
 
-    const handleOffline = () => {
-      setIsOnline(false);
-      toast({
-        title: "Modo offline",
-        description: "Suas alterações serão sincronizadas quando a conexão for restaurada.",
-        variant: "destructive",
-      });
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [toast]);
-
-  // Salvar operações pendentes no localStorage
-  useEffect(() => {
-    localStorage.setItem('offline-notes-operations', JSON.stringify(pendingOperations));
-  }, [pendingOperations]);
-
-  const addOfflineOperation = (operation: Omit<OfflineOperation, 'id' | 'timestamp'>) => {
+  const addOfflineOperation = async (operation: Omit<OfflineOperation, 'id' | 'timestamp'>) => {
     const newOperation: OfflineOperation = {
       ...operation,
-      id: `offline-${Date.now()}-${Math.random()}`,
+      id: crypto.randomUUID(),
       timestamp: Date.now(),
     };
 
+    await addPendingOperation(newOperation);
     setPendingOperations(prev => [...prev, newOperation]);
     
     if (!isOnline) {
@@ -76,17 +56,19 @@ export function useOfflineSync() {
     }
   };
 
-  const clearOfflineOperations = () => {
+  const clearOfflineOperations = async () => {
+    await clearPendingOperations();
     setPendingOperations([]);
-    localStorage.removeItem('offline-notes-operations');
   };
 
-  const removeOfflineOperation = (operationId: string) => {
+  const removeOfflineOperation = async (operationId: string) => {
+    await removePendingOperation(operationId);
     setPendingOperations(prev => prev.filter(op => op.id !== operationId));
   };
 
   return {
     isOnline,
+    cacheReady,
     pendingOperations,
     addOfflineOperation,
     clearOfflineOperations,

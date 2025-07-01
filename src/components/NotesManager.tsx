@@ -4,6 +4,7 @@ import NotesSearch from '@/components/NotesSearch';
 import NotesList from '@/components/NotesList';
 import EmptyNoteEditor from '@/components/EmptyNoteEditor';
 import NoteEditor from '@/components/NoteEditor';
+import OfflineIndicator from '@/components/OfflineIndicator';
 import { useNotes } from '@/hooks/useNotes';
 import { Note } from '@/types/Note';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -125,10 +126,13 @@ const NotesManager: React.FC<NotesManagerProps> = ({ renderHeader }) => {
       {renderHeader && renderHeader(handleCreateNote)}
       <main className="container mx-auto px-4 py-6 flex-1">
         <div className="max-w-7xl mx-auto space-y-6">
-          <NotesSearch
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-          />
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <NotesSearch
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+            />
+            <OfflineIndicator />
+          </div>
 
           {isMobile ? (
             // Mobile: Grid layout como antes
