@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+
+import React from 'react';
 import NotesSearch from '@/components/NotesSearch';
 import NotesList from '@/components/NotesList';
 import EmptyNoteEditor from '@/components/EmptyNoteEditor';
 import NoteEditor from '@/components/NoteEditor';
 import OfflineIndicator from '@/components/OfflineIndicator';
 import { useNotes } from '@/hooks/useNotes';
-import { Note } from '@/types/Note';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useNotesManagerState } from './NotesManager/NotesManagerState';
+import { useNotesManagerHandlers } from './NotesManager/NotesManagerHandlers';
 
 interface NotesManagerProps {
   onCreateNote: () => void;
@@ -15,82 +16,30 @@ interface NotesManagerProps {
 }
 
 const NotesManager: React.FC<NotesManagerProps> = ({ renderHeader }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { filterAndSortNotes, loading, user } = useNotes();
   
   const {
-    deleteNote,
+    searchTerm,
+    setSearchTerm,
+    selectedNote,
+    setSelectedNote,
+    isEditing,
+    setIsEditing,
+  } = useNotesManagerState();
+
+  const {
+    handleCreateNote,
+    handleNoteSelect,
+    handleNoteEdit,
+    handleNoteDelete,
+    handleNoteSave,
+    handleNoteCancel,
     togglePinNote,
     updateNoteColor,
-    filterAndSortNotes,
-    createNewNote,
-    saveNote,
-    loading,
-    user,
-  } = useNotes();
+  } = useNotesManagerHandlers(selectedNote, setSelectedNote, setIsEditing);
 
   const filteredNotes = filterAndSortNotes(searchTerm);
-
-  const handleCreateNote = async () => {
-    console.log('Creating new note...');
-    if (!user) {
-      console.log('No user found, cannot create note');
-      return;
-    }
-
-    try {
-      const newNote = await createNewNote();
-      console.log('New note created:', newNote);
-      if (newNote) {
-        if (isMobile) {
-          navigate(`/note/${newNote.id}?edit=true`);
-        } else {
-          setSelectedNote(newNote);
-          setIsEditing(true);
-        }
-      }
-    } catch (error) {
-      console.error('Error creating note:', error);
-    }
-  };
-
-  const handleNoteSelect = (note: Note) => {
-    if (!isMobile) {
-      setSelectedNote(note);
-      setIsEditing(false);
-    }
-  };
-
-  const handleNoteEdit = (note: Note) => {
-    if (isMobile) {
-      navigate(`/note/${note.id}`);
-    } else {
-      setSelectedNote(note);
-      setIsEditing(true);
-    }
-  };
-
-  const handleNoteDelete = (noteId: string) => {
-    deleteNote(noteId);
-    if (selectedNote?.id === noteId) {
-      setSelectedNote(null);
-      setIsEditing(false);
-    }
-  };
-
-  const handleNoteSave = async (noteData: Partial<Note>) => {
-    if (selectedNote) {
-      await saveNote(selectedNote.id, noteData);
-      setIsEditing(false);
-    }
-  };
-
-  const handleNoteCancel = () => {
-    setIsEditing(false);
-  };
 
   // Show loading state while checking authentication
   if (loading) {
