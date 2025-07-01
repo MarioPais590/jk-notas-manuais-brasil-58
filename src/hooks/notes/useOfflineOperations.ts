@@ -12,6 +12,8 @@ export function useOfflineOperations(
     createNewNote: () => Promise<Note | null>;
     saveNote: (noteId: string, noteData: Partial<Note>) => Promise<Note | null>;
     deleteNote: (noteId: string) => Promise<void>;
+    uploadAttachment: (noteId: string, file: File) => Promise<any>;
+    removeAttachment: (attachmentId: string, noteId: string) => Promise<void>;
   }
 ) {
   const { 

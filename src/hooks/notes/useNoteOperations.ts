@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Note } from '@/types/Note';
 import { useToast } from '@/hooks/use-toast';
 import { convertDatabaseNote } from './utils';
+import { useNoteDeletion } from './useNoteDeletion';
+import { useNoteAttachments } from './useNoteAttachments';
 
 export function useNoteOperations(
   user: User | null,
@@ -11,6 +13,8 @@ export function useNoteOperations(
   setNotes: React.Dispatch<React.SetStateAction<Note[]>>
 ) {
   const { toast } = useToast();
+  const { deleteNote } = useNoteDeletion(user, notes, setNotes);
+  const { uploadAttachment, removeAttachment } = useNoteAttachments(user, setNotes);
 
   const createNewNote = async (): Promise<Note | null> => {
     if (!user) {
@@ -257,7 +261,10 @@ export function useNoteOperations(
   return {
     createNewNote,
     saveNote,
+    deleteNote,
     togglePinNote,
     updateNoteColor,
+    uploadAttachment,
+    removeAttachment,
   };
 }
