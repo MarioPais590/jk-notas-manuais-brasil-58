@@ -17,6 +17,8 @@ const NoteCoverImage: React.FC<NoteCoverImageProps> = ({
 }) => {
   if (!coverImage) return null;
 
+  console.log('NoteCoverImage: Rendering with coverImage:', coverImage);
+
   // Calcular dimensões proporcionais para display (mantendo a proporção 1700:700)
   const displayWidth = 340; // Largura reduzida para o display
   const displayHeight = Math.round((displayWidth * COVER_IMAGE_CONFIG.height) / COVER_IMAGE_CONFIG.width); // ~140px
@@ -24,11 +26,12 @@ const NoteCoverImage: React.FC<NoteCoverImageProps> = ({
   return (
     <div className="space-y-2">
       <div 
-        className="overflow-hidden rounded-lg border bg-muted flex items-center justify-center"
+        className="overflow-hidden rounded-lg border flex items-center justify-center"
         style={{
           width: `${displayWidth}px`,
           height: `${displayHeight}px`,
-          maxWidth: '100%'
+          maxWidth: '100%',
+          backgroundColor: '#f1f5f9'
         }}
       >
         <ImageWithFallback

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pin, Paperclip } from 'lucide-react';
@@ -31,33 +30,28 @@ const NoteCard: React.FC<NoteCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { loadCachedImage, autoCacheImage, isOnline } = useLocalCache();
+  const { autoCacheImage, isOnline } = useLocalCache();
   const [coverImageSrc, setCoverImageSrc] = useState<string | null>(note.cover_image_url);
 
   useEffect(() => {
-    const loadCoverImage = async () => {
+    const processCoverImage = async () => {
       if (!note.cover_image_url) {
         setCoverImageSrc(null);
         return;
       }
 
-      try {
-        // Tentar carregar do cache primeiro
-        const cachedUrl = await loadCachedImage(note.cover_image_url);
-        setCoverImageSrc(cachedUrl);
+      console.log('NoteCard: Processing cover image for note:', note.id, note.cover_image_url);
+      setCoverImageSrc(note.cover_image_url);
 
-        // Se online e não é uma URL blob, fazer auto-cache
-        if (isOnline && !cachedUrl.startsWith('blob:') && cachedUrl === note.cover_image_url) {
-          autoCacheImage(note.cover_image_url);
-        }
-      } catch (error) {
-        console.error('Error loading cover image for note card:', error);
-        setCoverImageSrc(note.cover_image_url);
+      // Auto-cache em background se estiver online
+      if (isOnline && !note.cover_image_url.startsWith('blob:')) {
+        console.log('NoteCard: Triggering auto-cache for cover image');
+        autoCacheImage(note.cover_image_url);
       }
     };
 
-    loadCoverImage();
-  }, [note.cover_image_url, loadCachedImage, autoCacheImage, isOnline]);
+    processCoverImage();
+  }, [note.cover_image_url, note.id, autoCacheImage, isOnline]);
 
   const handleCardClick = () => {
     if (isMobile) {
