@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import Dexie, { Table } from 'dexie';
 import { Note, NoteAttachment } from '@/types/Note';
@@ -137,56 +138,51 @@ export function useLocalCache() {
     }
   };
 
-  // Cache de imagens otimizado para PWA mobile com cache automático
+  // Cache de imagens melhorado para PWA mobile
   const cacheImage = async (url: string): Promise<string> => {
     if (!cacheReady || !url || url.startsWith('blob:') || url.startsWith('data:')) {
+      console.log('Skipping cache for URL:', url);
       return url;
     }
     
     try {
-      console.log('Cache: Attempting to cache image:', url);
+      console.log('Attempting to cache image:', url);
       
       // Verificar se já está em cache
       const cached = await db.cachedImages.where('url').equals(url).first();
       if (cached) {
+        console.log('Image already cached:', url);
         const blobUrl = URL.createObjectURL(cached.blob);
-        console.log('Cache: Image already cached, returning blob URL:', blobUrl);
+        console.log('Returning cached blob URL:', blobUrl);
         return blobUrl;
       }
 
-      console.log('Cache: Downloading image for cache:', url);
+      console.log('Downloading image for cache:', url);
       
-      // Fetch otimizado para PWA mobile
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
-      
+      // Configurar fetch com headers para melhor compatibilidade com PWA/mobile
       const response = await fetch(url, {
         method: 'GET',
         mode: 'cors',
-        cache: 'default',
-        signal: controller.signal,
+        cache: 'force-cache',
         headers: {
-          'Accept': 'image/webp,image/avif,image/apng,image/jpeg,image/png,image/*,*/*;q=0.8',
+          'Accept': 'image/*,*/*;q=0.8',
         }
       });
       
-      clearTimeout(timeoutId);
-      
       if (!response.ok) {
-        console.warn('Cache: Failed to fetch image:', response.status, response.statusText);
+        console.warn('Failed to fetch image:', response.status, response.statusText);
         return url;
       }
       
       const blob = await response.blob();
-      console.log('Cache: Image downloaded, size:', blob.size, 'type:', blob.type);
+      console.log('Image downloaded, size:', blob.size, 'type:', blob.type);
       
-      // Verificar se é uma imagem válida
+      // Verificar se é realmente uma imagem
       if (!blob.type.startsWith('image/')) {
-        console.warn('Cache: Downloaded content is not an image:', blob.type);
+        console.warn('Downloaded content is not an image:', blob.type);
         return url;
       }
       
-      // Salvar no cache
       const cachedImage: CachedImage = {
         id: crypto.randomUUID(),
         url,
@@ -196,10 +192,10 @@ export function useLocalCache() {
 
       await db.cachedImages.add(cachedImage);
       const blobUrl = URL.createObjectURL(blob);
-      console.log('Cache: Image cached successfully, blob URL:', blobUrl);
+      console.log('Image cached successfully:', url, 'blob URL:', blobUrl);
       return blobUrl;
     } catch (error) {
-      console.error('Cache: Error caching image:', url, error);
+      console.error('Error caching image:', url, error);
       return url;
     }
   };
@@ -211,54 +207,18 @@ export function useLocalCache() {
     }
     
     try {
+      console.log('Looking for cached image:', url);
       const cached = await db.cachedImages.where('url').equals(url).first();
       if (cached) {
         const blobUrl = URL.createObjectURL(cached.blob);
-        console.log('Cache: Found cached image, returning blob URL:', blobUrl);
+        console.log('Found cached image:', url, 'returning blob URL:', blobUrl);
         return blobUrl;
       }
+      console.log('No cached version found for:', url);
       return url;
     } catch (error) {
-      console.error('Cache: Error loading cached image:', url, error);
+      console.error('Error loading cached image:', url, error);
       return url;
-    }
-  };
-
-  // Cache automático de imagem quando online - com retry
-  const autoCacheImage = async (url: string): Promise<void> => {
-    if (!isOnline || !url || url.startsWith('blob:') || url.startsWith('data:')) {
-      return;
-    }
-
-    try {
-      // Verificar se já está em cache
-      const cached = await db.cachedImages.where('url').equals(url).first();
-      if (cached) {
-        console.log('Cache: Image already auto-cached:', url);
-        return;
-      }
-
-      console.log('Cache: Starting auto-cache for:', url);
-      
-      // Cache em background com retry
-      const autoCacheWithRetry = async (retries = 2) => {
-        try {
-          await cacheImage(url);
-          console.log('Cache: Auto-cached successfully:', url);
-        } catch (error) {
-          if (retries > 0) {
-            console.warn(`Cache: Auto-cache failed, retrying (${retries} left):`, error);
-            setTimeout(() => autoCacheWithRetry(retries - 1), 2000);
-          } else {
-            console.error('Cache: Auto-cache failed after retries:', error);
-          }
-        }
-      };
-
-      // Executar em background sem bloquear
-      setTimeout(() => autoCacheWithRetry(), 500);
-    } catch (error) {
-      console.error('Cache: Error in auto-cache check:', error);
     }
   };
 
@@ -337,7 +297,6 @@ export function useLocalCache() {
     removeCachedNote,
     cacheImage,
     loadCachedImage,
-    autoCacheImage,
     addPendingOperation,
     getPendingOperations,
     removePendingOperation,

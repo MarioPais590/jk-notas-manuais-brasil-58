@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pin, Paperclip } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,8 +7,6 @@ import { Note } from '@/types/Note';
 import NoteActions from './NoteActions';
 import { formatDate } from '@/utils/noteFormatters';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useLocalCache } from '@/hooks/useLocalCache';
-import ImageWithFallback from './ImageWithFallback';
 
 interface NoteCardProps {
   note: Note;
@@ -30,28 +29,6 @@ const NoteCard: React.FC<NoteCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { autoCacheImage, isOnline } = useLocalCache();
-  const [coverImageSrc, setCoverImageSrc] = useState<string | null>(note.cover_image_url);
-
-  useEffect(() => {
-    const processCoverImage = async () => {
-      if (!note.cover_image_url) {
-        setCoverImageSrc(null);
-        return;
-      }
-
-      console.log('NoteCard: Processing cover image for note:', note.id, note.cover_image_url);
-      setCoverImageSrc(note.cover_image_url);
-
-      // Auto-cache em background se estiver online
-      if (isOnline && !note.cover_image_url.startsWith('blob:')) {
-        console.log('NoteCard: Triggering auto-cache for cover image');
-        autoCacheImage(note.cover_image_url);
-      }
-    };
-
-    processCoverImage();
-  }, [note.cover_image_url, note.id, autoCacheImage, isOnline]);
 
   const handleCardClick = () => {
     if (isMobile) {
@@ -91,13 +68,12 @@ const NoteCard: React.FC<NoteCardProps> = ({
           />
         </div>
 
-        {coverImageSrc && (
+        {note.cover_image_url && (
           <div className="mb-2">
-            <ImageWithFallback
-              src={coverImageSrc}
+            <img
+              src={note.cover_image_url}
               alt="Capa da nota"
               className="w-full h-20 object-cover rounded"
-              fallbackText="Erro ao carregar capa"
             />
           </div>
         )}

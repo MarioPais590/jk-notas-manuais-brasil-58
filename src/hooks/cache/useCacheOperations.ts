@@ -10,50 +10,47 @@ export function useCacheOperations() {
     loadCachedNotes,
     cacheImage,
     loadCachedImage,
-    autoCacheImage,
     cleanOldCache,
   } = useLocalCache();
 
   const cacheNoteWithImages = async (note: Note) => {
     await cacheNote(note);
     
-    // Auto-cache da imagem de capa se existir e não for um blob temporário
+    // Cache da imagem de capa se existir e não for um blob temporário
     if (note.cover_image_url && !note.cover_image_url.startsWith('blob:') && !note.cover_image_url.startsWith('data:')) {
       try {
-        console.log('Auto-caching cover image for note:', note.id, note.cover_image_url);
-        await autoCacheImage(note.cover_image_url);
-        console.log('Cover image auto-cached successfully for note:', note.id);
+        console.log('Caching cover image for note:', note.id, note.cover_image_url);
+        await cacheImage(note.cover_image_url);
+        console.log('Cover image cached successfully for note:', note.id);
       } catch (error) {
-        console.error('Error auto-caching cover image for note', note.id, ':', error);
+        console.error('Error caching cover image for note', note.id, ':', error);
       }
     }
   };
 
   const cacheNotesWithImages = async (notes: Note[]) => {
-    console.log('Caching notes and auto-caching images:', notes.length);
+    console.log('Caching notes and images:', notes.length);
     await cacheNotes(notes);
     
-    // Auto-cache das imagens de capa em paralelo para melhor performance
+    // Cache das imagens de capa em paralelo para melhor performance
     const imagePromises = notes
       .filter(note => note.cover_image_url && 
         !note.cover_image_url.startsWith('blob:') && 
         !note.cover_image_url.startsWith('data:'))
       .map(async (note) => {
         try {
-          console.log('Starting auto-cache for image:', note.id, note.cover_image_url);
-          await autoCacheImage(note.cover_image_url!);
-          console.log('Image auto-cached successfully:', note.id);
+          console.log('Starting cache for image:', note.id, note.cover_image_url);
+          await cacheImage(note.cover_image_url!);
+          console.log('Image cached successfully:', note.id);
         } catch (error) {
-          console.error('Error auto-caching image for note', note.id, ':', error);
+          console.error('Error caching image for note', note.id, ':', error);
         }
       });
     
     if (imagePromises.length > 0) {
-      console.log('Auto-caching', imagePromises.length, 'images in background...');
-      // Não esperar pelas imagens para não bloquear a UI
-      Promise.allSettled(imagePromises).then(() => {
-        console.log('Background auto-caching completed for', imagePromises.length, 'images');
-      });
+      console.log('Waiting for', imagePromises.length, 'images to cache...');
+      await Promise.allSettled(imagePromises);
+      console.log('Image caching completed for', imagePromises.length, 'images');
     }
   };
 
@@ -99,7 +96,6 @@ export function useCacheOperations() {
     loadCachedNotes: loadNotesWithCachedImages,
     cacheImage,
     loadCachedImage,
-    autoCacheImage,
     cleanOldCache,
   };
 }
