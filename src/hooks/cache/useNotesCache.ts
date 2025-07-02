@@ -3,14 +3,23 @@ import { Note } from '@/types/Note';
 import { db } from './database';
 
 export function useNotesCache() {
-  // Save notes in local cache
+  // Save notes in local cache with upsert to avoid constraint errors
   const cacheNotes = async (notes: Note[]) => {
     try {
-      await db.notes.clear();
-      await db.notes.bulkAdd(notes);
+      // Use bulkPut instead of clear + bulkAdd to avoid constraint errors
+      await db.notes.bulkPut(notes);
       console.log('Notes cached locally:', notes.length);
     } catch (error) {
       console.error('Error caching notes:', error);
+      // Fallback: try individual puts
+      try {
+        for (const note of notes) {
+          await db.notes.put(note);
+        }
+        console.log('Notes cached individually:', notes.length);
+      } catch (fallbackError) {
+        console.error('Fallback cache error:', fallbackError);
+      }
     }
   };
 
