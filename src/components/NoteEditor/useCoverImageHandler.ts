@@ -14,7 +14,7 @@ export function useCoverImageHandler(
   setUploadingCover: (uploading: boolean) => void
 ) {
   const { toast } = useToast();
-  const { isOnline, cacheImage, loadCachedImage } = useLocalCache();
+  const { isOnline } = useLocalCache();
 
   const loadCoverImage = async (coverImageUrl: string | null) => {
     if (!coverImageUrl) {
@@ -24,54 +24,11 @@ export function useCoverImageHandler(
 
     try {
       console.log('Loading cover image:', coverImageUrl);
-      
-      // Primeiro tenta carregar do cache local
-      const cachedImageUrl = await loadCachedImage(coverImageUrl);
-      console.log('Cached image URL:', cachedImageUrl);
-      
-      // Se a URL do cache é diferente da original, significa que temos uma versão local
-      if (cachedImageUrl !== coverImageUrl) {
-        console.log('Using cached image for cover');
-        setCoverImage(cachedImageUrl);
-      } else if (isOnline) {
-        // Se estamos online e não temos cache, tenta carregar e fazer cache
-        console.log('Online: loading and caching image');
-        try {
-          // Verificar se a imagem existe e é acessível
-          const response = await fetch(coverImageUrl, { method: 'HEAD' });
-          if (response.ok) {
-            setCoverImage(coverImageUrl);
-            // Fazer cache em background
-            setTimeout(async () => {
-              try {
-                await cacheImage(coverImageUrl);
-                console.log('Image cached successfully:', coverImageUrl);
-              } catch (error) {
-                console.error('Error caching image:', error);
-              }
-            }, 100);
-          } else {
-            console.warn('Image not accessible:', coverImageUrl);
-            setCoverImage(null);
-          }
-        } catch (error) {
-          console.error('Error checking image accessibility:', error);
-          // Em caso de erro, ainda tenta exibir a imagem
-          setCoverImage(coverImageUrl);
-        }
-      } else {
-        // Offline e sem cache - não exibir a imagem
-        console.log('Offline: no cached image available');
-        setCoverImage(null);
-      }
+      setCoverImage(coverImageUrl);
+      // O cache será feito automaticamente pelo ImageWithFallback
     } catch (error) {
       console.error('Error loading cover image:', error);
-      // Fallback: tentar exibir a URL original se disponível
-      if (isOnline && coverImageUrl) {
-        setCoverImage(coverImageUrl);
-      } else {
-        setCoverImage(null);
-      }
+      setCoverImage(coverImageUrl); // Tentar exibir mesmo assim
     }
   };
 
@@ -83,7 +40,6 @@ export function useCoverImageHandler(
       setUploadingCover(true);
       console.log('Processing cover image for note:', noteId);
       
-      // Processar e redimensionar imagem
       const processedImage = await processImageForCover(file);
       
       console.log('Image processed successfully:', {
@@ -92,12 +48,10 @@ export function useCoverImageHandler(
         dimensions: `${processedImage.width}x${processedImage.height}`
       });
 
-      // Criar preview local
       const previewUrl = URL.createObjectURL(processedImage.file);
       setCoverPreview(previewUrl);
 
       if (isOnline) {
-        // Se online, fazer upload para Supabase
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         
         if (userError || !user) {
@@ -130,17 +84,11 @@ export function useCoverImageHandler(
         console.log('Cover image public URL:', publicUrl);
         setCoverImage(publicUrl);
         
-        // Cache da imagem após upload
-        setTimeout(async () => {
-          try {
-            await cacheImage(publicUrl);
-            console.log('Uploaded image cached:', publicUrl);
-          } catch (error) {
-            console.error('Error caching uploaded image:', error);
-          }
-        }, 100);
+        if (coverPreview) {
+          URL.revokeObjectURL(coverPreview);
+          setCoverPreview(null);
+        }
       } else {
-        // Se offline, usar apenas o preview local
         setCoverImage(previewUrl);
         
         toast({
@@ -148,12 +96,6 @@ export function useCoverImageHandler(
           description: "A imagem será sincronizada quando você estiver online.",
           variant: "destructive",
         });
-      }
-      
-      // Limpar preview após upload bem-sucedido (apenas se online)
-      if (isOnline && coverPreview) {
-        URL.revokeObjectURL(coverPreview);
-        setCoverPreview(null);
       }
       
       toast({

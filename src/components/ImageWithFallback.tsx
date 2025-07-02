@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface ImageWithFallbackProps {
   src: string | null;
@@ -16,8 +16,85 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
 }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const [cachedSrc, setCachedSrc] = useState<string | null>(null);
 
-  // If no src provided or we had an error loading, show fallback
+  // Cache automático para PWA mobile
+  useEffect(() => {
+    const loadAndCacheImage = async () => {
+      if (!src || src.startsWith('blob:') || src.startsWith('data:')) {
+        setCachedSrc(src);
+        setImageLoading(false);
+        return;
+      }
+
+      try {
+        // Verificar cache primeiro
+        const cacheKey = `img_cache_${btoa(src)}`;
+        const cached = localStorage.getItem(cacheKey);
+        
+        if (cached) {
+          console.log('Using cached image:', src);
+          setCachedSrc(cached);
+          setImageLoading(false);
+          return;
+        }
+
+        // Se não tem cache, carregar e cachear
+        console.log('Loading and caching image:', src);
+        
+        const response = await fetch(src, {
+          mode: 'cors',
+          cache: 'force-cache'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        const reader = new FileReader();
+        
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          // Salvar no cache local
+          try {
+            localStorage.setItem(cacheKey, dataUrl);
+            console.log('Image cached successfully:', src);
+          } catch (e) {
+            console.warn('Cache storage full, clearing old entries');
+            // Limpar cache antigo se necessário
+            const keys = Object.keys(localStorage).filter(k => k.startsWith('img_cache_'));
+            keys.slice(0, Math.floor(keys.length / 2)).forEach(k => localStorage.removeItem(k));
+          }
+          setCachedSrc(dataUrl);
+          setImageLoading(false);
+        };
+        
+        reader.onerror = () => {
+          console.error('Error reading image blob');
+          setImageError(true);
+          setImageLoading(false);
+        };
+        
+        reader.readAsDataURL(blob);
+        
+      } catch (error) {
+        console.error('Error loading image:', src, error);
+        setImageError(true);
+        setImageLoading(false);
+      }
+    };
+
+    if (src) {
+      setImageError(false);
+      setImageLoading(true);
+      loadAndCacheImage();
+    } else {
+      setImageLoading(false);
+    }
+  }, [src]);
+
+  // Se não há src ou erro, mostrar fallback
   if (!src || imageError) {
     return (
       <div className={`bg-muted flex items-center justify-center text-muted-foreground text-sm ${className}`}>
@@ -33,27 +110,27 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
         </div>
       )}
-      <img
-        src={src}
-        alt={alt}
-        className={className}
-        onLoad={() => {
-          console.log('Image loaded successfully:', src);
-          setImageLoading(false);
-        }}
-        onError={(e) => {
-          console.error('Failed to load image:', src, e);
-          setImageError(true);
-          setImageLoading(false);
-        }}
-        style={{ 
-          display: imageLoading ? 'none' : 'block',
-          imageRendering: 'crisp-edges'
-        }}
-        // Adicionar atributos para melhor compatibilidade com PWA mobile
-        crossOrigin="anonymous"
-        loading="lazy"
-      />
+      {cachedSrc && (
+        <img
+          src={cachedSrc}
+          alt={alt}
+          className={className}
+          onLoad={() => {
+            console.log('Image rendered successfully');
+            setImageLoading(false);
+          }}
+          onError={() => {
+            console.error('Image render failed:', cachedSrc);
+            setImageError(true);
+            setImageLoading(false);
+          }}
+          style={{ 
+            display: imageLoading ? 'none' : 'block',
+            imageRendering: 'crisp-edges'
+          }}
+          loading="lazy"
+        />
+      )}
     </div>
   );
 };

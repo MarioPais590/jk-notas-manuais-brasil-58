@@ -5,6 +5,7 @@ import { Pin, Paperclip } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Note } from '@/types/Note';
 import NoteActions from './NoteActions';
+import ImageWithFallback from './ImageWithFallback';
 import { formatDate } from '@/utils/noteFormatters';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -32,10 +33,8 @@ const NoteCard: React.FC<NoteCardProps> = ({
 
   const handleCardClick = () => {
     if (isMobile) {
-      // Mobile/tablet: navegar para nova página
       navigate(`/note/${note.id}`);
     } else {
-      // Desktop: selecionar nota na mesma página
       onSelect();
     }
   };
@@ -70,10 +69,11 @@ const NoteCard: React.FC<NoteCardProps> = ({
 
         {note.cover_image_url && (
           <div className="mb-2">
-            <img
+            <ImageWithFallback
               src={note.cover_image_url}
               alt="Capa da nota"
               className="w-full h-20 object-cover rounded"
+              fallbackText="Erro ao carregar capa"
             />
           </div>
         )}
