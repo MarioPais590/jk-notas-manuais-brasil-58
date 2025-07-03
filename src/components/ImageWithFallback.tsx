@@ -8,10 +8,6 @@ interface ImageWithFallbackProps {
   fallbackText?: string;
 }
 
-// Global cache to prevent duplicate requests
-const pendingRequests = new Map<string, Promise<string>>();
-const imageCache = new Map<string, string>();
-
 const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   src,
   alt,
@@ -30,128 +26,109 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
     };
   }, []);
 
-  // Cache automático para PWA mobile
+  // Cache isolado por imagem para evitar conflitos
   useEffect(() => {
     const loadAndCacheImage = async () => {
-      if (!src || src.startsWith('blob:') || src.startsWith('data:')) {
+      if (!src) {
+        setCachedSrc(null);
+        setImageLoading(false);
+        return;
+      }
+
+      // Para URLs locais (blob: ou data:), usar diretamente
+      if (src.startsWith('blob:') || src.startsWith('data:')) {
         setCachedSrc(src);
         setImageLoading(false);
         return;
       }
 
-      // Check memory cache first
-      if (imageCache.has(src)) {
-        setCachedSrc(imageCache.get(src)!);
-        setImageLoading(false);
-        return;
-      }
-
-      // Check if there's already a pending request for this image
-      if (pendingRequests.has(src)) {
+      try {
+        // Gerar chave única baseada na URL completa
+        const cacheKey = `img_cache_${btoa(src).replace(/[^a-zA-Z0-9]/g, '').slice(0, 50)}`;
+        
+        // Verificar cache local primeiro
         try {
-          const result = await pendingRequests.get(src)!;
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            console.log('Using cached image for:', src);
+            if (isMountedRef.current) {
+              setCachedSrc(cached);
+              setImageLoading(false);
+            }
+            return;
+          }
+        } catch (storageError) {
+          console.warn('localStorage read error:', storageError);
+        }
+
+        // Se não tem cache, carregar e cachear
+        console.log('Loading and caching image:', src);
+        
+        const response = await fetch(src, {
+          mode: 'cors',
+          cache: 'force-cache',
+          headers: {
+            'Accept': 'image/*,*/*;q=0.8',
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        
+        if (!blob.type.startsWith('image/')) {
+          throw new Error('Content is not an image');
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          
+          // Salvar no cache com tratamento de erros
+          try {
+            localStorage.setItem(cacheKey, dataUrl);
+            console.log('Image cached successfully:', src);
+          } catch (e) {
+            console.warn('Cache storage full, clearing old entries');
+            // Limpar cache antigo se necessário
+            try {
+              const keys = Object.keys(localStorage).filter(k => k.startsWith('img_cache_'));
+              // Remover metade das entradas mais antigas
+              keys.slice(0, Math.floor(keys.length / 2)).forEach(k => {
+                try {
+                  localStorage.removeItem(k);
+                } catch (removeError) {
+                  console.warn('Error removing cache key:', k);
+                }
+              });
+              // Tentar salvar novamente
+              localStorage.setItem(cacheKey, dataUrl);
+            } catch (cleanupError) {
+              console.warn('Cache cleanup failed:', cleanupError);
+            }
+          }
+          
           if (isMountedRef.current) {
-            setCachedSrc(result);
+            setCachedSrc(dataUrl);
             setImageLoading(false);
           }
-        } catch (error) {
+        };
+        
+        reader.onerror = () => {
+          console.error('Error reading image blob for:', src);
           if (isMountedRef.current) {
             setImageError(true);
             setImageLoading(false);
           }
-        }
-        return;
-      }
-
-      try {
-        // Create a promise for this request
-        const requestPromise = (async () => {
-          // Verificar localStorage cache primeiro
-          const cacheKey = `img_${btoa(src).replace(/[^a-zA-Z0-9]/g, '').slice(0, 50)}`;
-          
-          try {
-            const cached = localStorage.getItem(cacheKey);
-            if (cached) {
-              console.log('Using cached image:', src);
-              return cached;
-            }
-          } catch (storageError) {
-            console.warn('localStorage read error:', storageError);
-          }
-
-          // Se não tem cache, carregar e cachear
-          console.log('Loading and caching image:', src);
-          
-          const response = await fetch(src, {
-            mode: 'cors',
-            cache: 'force-cache',
-            headers: {
-              'Accept': 'image/*,*/*;q=0.8',
-            }
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          
-          const blob = await response.blob();
-          const reader = new FileReader();
-          
-          return new Promise<string>((resolve, reject) => {
-            reader.onload = () => {
-              const dataUrl = reader.result as string;
-              // Salvar no cache local com tratamento de erros
-              try {
-                localStorage.setItem(cacheKey, dataUrl);
-                console.log('Image cached successfully:', src);
-              } catch (e) {
-                console.warn('Cache storage full, clearing old entries');
-                // Limpar cache antigo se necessário
-                try {
-                  const keys = Object.keys(localStorage).filter(k => k.startsWith('img_'));
-                  keys.slice(0, Math.floor(keys.length / 2)).forEach(k => {
-                    try {
-                      localStorage.removeItem(k);
-                    } catch (removeError) {
-                      console.warn('Error removing cache key:', k);
-                    }
-                  });
-                  // Tentar salvar novamente
-                  localStorage.setItem(cacheKey, dataUrl);
-                } catch (cleanupError) {
-                  console.warn('Cache cleanup failed:', cleanupError);
-                }
-              }
-              resolve(dataUrl);
-            };
-            
-            reader.onerror = () => {
-              reject(new Error('Error reading image blob'));
-            };
-            
-            reader.readAsDataURL(blob);
-          });
-        })();
-
-        // Store the promise
-        pendingRequests.set(src, requestPromise);
-
-        const result = await requestPromise;
+        };
         
-        // Cache in memory
-        imageCache.set(src, result);
-        
-        // Clean up the pending request
-        pendingRequests.delete(src);
-
-        if (isMountedRef.current) {
-          setCachedSrc(result);
-          setImageLoading(false);
-        }
+        reader.readAsDataURL(blob);
         
       } catch (error) {
         console.error('Error loading image:', src, error);
-        pendingRequests.delete(src);
         if (isMountedRef.current) {
           setImageError(true);
           setImageLoading(false);
@@ -159,14 +136,13 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
       }
     };
 
-    if (src) {
-      setImageError(false);
-      setImageLoading(true);
-      loadAndCacheImage();
-    } else {
-      setImageLoading(false);
-    }
-  }, [src]);
+    // Reset states quando src muda
+    setImageError(false);
+    setImageLoading(true);
+    setCachedSrc(null);
+    
+    loadAndCacheImage();
+  }, [src]); // Dependência apenas do src para garantir que cada URL seja tratada individualmente
 
   // Se não há src ou erro, mostrar fallback
   if (!src || imageError) {
@@ -190,13 +166,13 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
           alt={alt}
           className={className}
           onLoad={() => {
-            console.log('Image rendered successfully');
+            console.log('Image rendered successfully for:', src);
             if (isMountedRef.current) {
               setImageLoading(false);
             }
           }}
           onError={() => {
-            console.error('Image render failed:', cachedSrc);
+            console.error('Image render failed for:', src);
             if (isMountedRef.current) {
               setImageError(true);
               setImageLoading(false);
