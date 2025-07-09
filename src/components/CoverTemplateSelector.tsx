@@ -1,9 +1,9 @@
 
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { COVER_TEMPLATES, CoverTemplate, preloadCoverTemplates } from '@/constants/coverTemplates';
+import { COVER_TEMPLATES, CoverTemplate } from '@/constants/coverTemplates';
 import ImageWithFallback from './ImageWithFallback';
 
 interface CoverTemplateSelectorProps {
@@ -17,28 +17,55 @@ const CoverTemplateSelector: React.FC<CoverTemplateSelectorProps> = ({
   onClose,
   onSelectTemplate,
 }) => {
-  // Pré-carregar templates quando o componente monta
-  useEffect(() => {
-    if (isOpen) {
-      preloadCoverTemplates();
-    }
-  }, [isOpen]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const handleTemplateSelect = (template: CoverTemplate) => {
     onSelectTemplate(template);
     onClose();
   };
 
+  const categories = ['all', 'abstract', 'nature', 'geometric', 'minimal', 'gradient', 'texture'];
+  const categoryNames: Record<string, string> = {
+    all: 'Todos',
+    abstract: 'Abstrato',
+    nature: 'Natureza',
+    geometric: 'Geométrico',
+    minimal: 'Minimalista',
+    gradient: 'Gradiente',
+    texture: 'Textura'
+  };
+
+  const filteredTemplates = selectedCategory && selectedCategory !== 'all' 
+    ? COVER_TEMPLATES.filter(template => template.category === selectedCategory)
+    : COVER_TEMPLATES;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
+      <DialogContent className="max-w-4xl max-h-[80vh]" aria-describedby="template-selector-description">
         <DialogHeader>
           <DialogTitle>Escolher Modelo de Capa</DialogTitle>
+          <DialogDescription id="template-selector-description">
+            Selecione um modelo de capa profissional para sua nota
+          </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="h-full max-h-[60vh]">
+        {/* Filtros por categoria */}
+        <div className="flex flex-wrap gap-2 pb-4 border-b">
+          {categories.map(category => (
+            <Button
+              key={category}
+              variant={selectedCategory === category ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCategory(category)}
+            >
+              {categoryNames[category]}
+            </Button>
+          ))}
+        </div>
+        
+        <ScrollArea className="h-full max-h-[50vh]">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
-            {COVER_TEMPLATES.map((template) => (
+            {filteredTemplates.map((template) => (
               <div
                 key={template.id}
                 className="group cursor-pointer"

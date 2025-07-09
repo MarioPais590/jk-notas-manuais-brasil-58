@@ -124,13 +124,12 @@ export function useCoverImageHandler(
       setUploadingCover(true);
       console.log('Selecting cover template:', template.id);
 
-      // Para templates, usar o caminho diretamente
+      // Usar URL do template diretamente para garantir disponibilidade
       const templateUrl = template.path;
       
       if (isOnline) {
-        // Carregar a imagem do template e fazer upload para o Supabase
+        // Tentar fazer upload do template para o Supabase para salvar permanentemente
         try {
-          // Usar fetch para carregar a imagem do template
           const response = await fetch(templateUrl);
           if (!response.ok) {
             throw new Error(`Failed to fetch template: ${response.status}`);
@@ -145,7 +144,7 @@ export function useCoverImageHandler(
           }
           
           const timestamp = Date.now();
-          const fileName = `${user.id}/covers/${noteId}/template-${template.id}-${timestamp}.webp`;
+          const fileName = `${user.id}/covers/${noteId}/template-${template.id}-${timestamp}.jpg`;
 
           console.log('Uploading template cover to:', fileName);
 
@@ -158,20 +157,20 @@ export function useCoverImageHandler(
 
           if (error) {
             console.error('Template cover upload error:', error);
-            throw error;
+            // Fallback: usar URL do template diretamente
+            setCoverImage(templateUrl);
+          } else {
+            console.log('Template cover uploaded:', data);
+
+            const { data: { publicUrl } } = supabase.storage
+              .from('note-attachments')
+              .getPublicUrl(fileName);
+
+            console.log('Template cover public URL:', publicUrl);
+            setCoverImage(publicUrl);
           }
-
-          console.log('Template cover uploaded:', data);
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('note-attachments')
-            .getPublicUrl(fileName);
-
-          console.log('Template cover public URL:', publicUrl);
-          setCoverImage(publicUrl);
         } catch (uploadError) {
-          console.warn('Failed to upload template to Supabase, using local path:', uploadError);
-          // Fallback: usar URL do template localmente
+          console.warn('Failed to upload template to Supabase, using direct URL:', uploadError);
           setCoverImage(templateUrl);
         }
       } else {

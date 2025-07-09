@@ -39,8 +39,8 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
       setImageLoading(true);
       setCachedSrc(null);
 
-      // Para templates internos (caminhos relativos), carregar diretamente
-      if (src.startsWith('./') || src.startsWith('/')) {
+      // Para URLs do Unsplash ou outras URLs remotas confiáveis, carregar diretamente
+      if (src.startsWith('https://images.unsplash.com/') || src.startsWith('https://')) {
         if (isMountedRef.current) {
           setCachedSrc(src);
           setImageLoading(false);
@@ -57,11 +57,11 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
         return;
       }
 
-      // Para URLs remotas, tentar carregar com cache
+      // Para URLs do Supabase, tentar carregar com cache inteligente
       try {
         console.log('Loading remote image:', src);
         
-        // Verificar cache local primeiro
+        // Verificar cache com limpeza automática se lotado
         const cacheKey = `img_cache_${btoa(src).replace(/[^a-zA-Z0-9]/g, '').slice(0, 50)}`;
         
         try {
@@ -75,10 +75,12 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
             return;
           }
         } catch (storageError) {
-          console.warn('localStorage read error:', storageError);
+          // Se localStorage está cheio, limpar cache antigo
+          console.warn('Cache storage issue, cleaning old entries:', storageError);
+          cleanOldCacheEntries();
         }
 
-        // Se não tem cache, carregar e cachear
+        // Carregar e cachear se possível
         const response = await fetch(src, {
           mode: 'cors',
           cache: 'force-cache',
@@ -102,14 +104,14 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
         reader.onload = () => {
           const dataUrl = reader.result as string;
           
-          // Salvar no cache
+          // Tentar salvar no cache, mas não falhar se não conseguir
           try {
-            if (dataUrl.length < 5 * 1024 * 1024) {
+            if (dataUrl.length < 2 * 1024 * 1024) { // Apenas imagens < 2MB
               localStorage.setItem(cacheKey, dataUrl);
               console.log('Image cached successfully:', src);
             }
           } catch (e) {
-            console.warn('Cache storage full:', e);
+            console.warn('Cache storage full, using image without caching:', e);
           }
           
           if (isMountedRef.current) {
@@ -140,6 +142,28 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
 
     loadImage();
   }, [src]);
+
+  // Função para limpar entradas antigas do cache
+  const cleanOldCacheEntries = () => {
+    try {
+      const keys = Object.keys(localStorage);
+      const cacheKeys = keys.filter(key => key.startsWith('img_cache_'));
+      
+      // Remove metade das entradas de cache mais antigas
+      const keysToRemove = cacheKeys.slice(0, Math.floor(cacheKeys.length / 2));
+      keysToRemove.forEach(key => {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {
+          console.warn('Error removing cache key:', key, e);
+        }
+      });
+      
+      console.log('Cleaned old cache entries:', keysToRemove.length);
+    } catch (error) {
+      console.error('Error cleaning cache:', error);
+    }
+  };
 
   // Se não há src ou erro, mostrar fallback
   if (!src || imageError) {

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Upload, Palette } from 'lucide-react';
 import CoverTemplateSelector from './CoverTemplateSelector';
 import { CoverTemplate } from '@/constants/coverTemplates';
@@ -36,9 +36,12 @@ const CoverSelectionModal: React.FC<CoverSelectionModalProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby="cover-selection-description">
           <DialogHeader>
             <DialogTitle>Adicionar Capa</DialogTitle>
+            <DialogDescription id="cover-selection-description">
+              Escolha como adicionar uma capa à sua nota
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
@@ -59,7 +62,7 @@ const CoverSelectionModal: React.FC<CoverSelectionModalProps> = ({
             >
               <Palette className="h-6 w-6" />
               <span>Escolher um Modelo Pronto</span>
-              <span className="text-xs text-muted-foreground">10 modelos disponíveis</span>
+              <span className="text-xs text-muted-foreground">10 modelos profissionais</span>
             </Button>
           </div>
           

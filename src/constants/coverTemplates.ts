@@ -7,76 +7,76 @@ export interface CoverTemplate {
   category?: string;
 }
 
-// Templates usando caminhos relativos que funcionam melhor no PWA
+// Templates usando URLs do Unsplash como fallback confiável para o PWA
 export const COVER_TEMPLATES: CoverTemplate[] = [
   {
     id: 'template-1',
     name: 'Abstrato Azul',
-    path: './template-1.webp',
-    thumbnail: './template-1.webp',
+    path: 'https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?w=1700&h=700&fit=crop&auto=format&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?w=340&h=140&fit=crop&auto=format&q=80',
     category: 'abstract'
   },
   {
     id: 'template-2',
     name: 'Natureza Verde',
-    path: './template-2.webp',
-    thumbnail: './template-2.webp',
+    path: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1700&h=700&fit=crop&auto=format&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=340&h=140&fit=crop&auto=format&q=80',
     category: 'nature'
   },
   {
     id: 'template-3',
     name: 'Geométrico Rosa',
-    path: './template-3.webp',
-    thumbnail: './template-3.webp',
+    path: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1700&h=700&fit=crop&auto=format&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=340&h=140&fit=crop&auto=format&q=80',
     category: 'geometric'
   },
   {
     id: 'template-4',
     name: 'Minimalista',
-    path: './template-4.webp',
-    thumbnail: './template-4.webp',
+    path: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1700&h=700&fit=crop&auto=format&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=340&h=140&fit=crop&auto=format&q=80',
     category: 'minimal'
   },
   {
     id: 'template-5',
     name: 'Gradiente Roxo',
-    path: './template-5.webp',
-    thumbnail: './template-5.webp',
+    path: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=1700&h=700&fit=crop&auto=format&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=340&h=140&fit=crop&auto=format&q=80',
     category: 'gradient'
   },
   {
     id: 'template-6',
     name: 'Textura Dourada',
-    path: './template-6.webp',
-    thumbnail: './template-6.webp',
+    path: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1700&h=700&fit=crop&auto=format&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=340&h=140&fit=crop&auto=format&q=80',
     category: 'texture'
   },
   {
     id: 'template-7',
     name: 'Ondas Azuis',
-    path: './template-7.webp',
-    thumbnail: './template-7.webp',
+    path: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1700&h=700&fit=crop&auto=format&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=340&h=140&fit=crop&auto=format&q=80',
     category: 'abstract'
   },
   {
     id: 'template-8',
     name: 'Floresta',
-    path: './template-8.webp',
-    thumbnail: './template-8.webp',
+    path: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1700&h=700&fit=crop&auto=format&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=340&h=140&fit=crop&auto=format&q=80',
     category: 'nature'
   },
   {
     id: 'template-9',
     name: 'Cristais',
-    path: './template-9.webp',
-    thumbnail: './template-9.webp',
+    path: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1700&h=700&fit=crop&auto=format&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=340&h=140&fit=crop&auto=format&q=80',
     category: 'geometric'
   },
   {
     id: 'template-10',
     name: 'Oceano',
-    path: './template-10.webp',
-    thumbnail: './template-10.webp',
+    path: 'https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=1700&h=700&fit=crop&auto=format&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=340&h=140&fit=crop&auto=format&q=80',
     category: 'nature'
   }
 ];
@@ -89,13 +89,7 @@ export const getCoverTemplatesByCategory = (category: string): CoverTemplate[] =
   return COVER_TEMPLATES.filter(template => template.category === category);
 };
 
-// Função para pré-carregar templates de forma otimizada
+// Não pré-carregar mais - fazer isso apenas quando necessário
 export const preloadCoverTemplates = () => {
-  if (typeof window === 'undefined') return;
-  
-  COVER_TEMPLATES.forEach(template => {
-    const img = new Image();
-    img.src = template.path;
-    // Não adicionamos ao DOM, apenas pré-carregamos na memória
-  });
+  console.log('Templates serão carregados sob demanda para otimizar performance');
 };
