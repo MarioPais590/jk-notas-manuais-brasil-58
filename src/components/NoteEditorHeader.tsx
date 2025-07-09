@@ -1,10 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Save, Edit, X, Download, Share2, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatDate } from '@/utils/noteFormatters';
 import { Note } from '@/types/Note';
+import CoverSelectionModal from './CoverSelectionModal';
+import { CoverTemplate } from '@/constants/coverTemplates';
 
 interface NoteEditorHeaderProps {
   note: Note;
@@ -15,6 +17,7 @@ interface NoteEditorHeaderProps {
   onCancel: () => void;
   onSave: () => void;
   onImageUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onTemplateSelect: (template: CoverTemplate) => void;
   onShareModalOpen: () => void;
   onDownloadModalOpen: () => void;
 }
@@ -28,9 +31,12 @@ const NoteEditorHeader: React.FC<NoteEditorHeaderProps> = ({
   onCancel,
   onSave,
   onImageUpload,
+  onTemplateSelect,
   onShareModalOpen,
   onDownloadModalOpen,
 }) => {
+  const [coverSelectionOpen, setCoverSelectionOpen] = useState(false);
+
   return (
     <div className="flex items-center justify-between">
       <div className="flex-1">
@@ -55,25 +61,14 @@ const NoteEditorHeader: React.FC<NoteEditorHeaderProps> = ({
       <div className="flex gap-2">
         {isEditing ? (
           <>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,image/webp"
-              onChange={onImageUpload}
-              className="hidden"
-              id="cover-upload"
-            />
-            <label htmlFor="cover-upload">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                asChild
-                title="Adicionar capa (1700x700px, PNG/JPG/WebP, máx 10MB, 300 DPI)"
-              >
-                <span className="cursor-pointer">
-                  <Image className="h-4 w-4" />
-                </span>
-              </Button>
-            </label>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setCoverSelectionOpen(true)}
+              title="Adicionar capa (1700x700px, PNG/JPG/WebP, máx 10MB, 300 DPI)"
+            >
+              <Image className="h-4 w-4" />
+            </Button>
             <Button variant="outline" size="sm" onClick={onCancel}>
               <X className="h-4 w-4" />
             </Button>
@@ -97,6 +92,13 @@ const NoteEditorHeader: React.FC<NoteEditorHeaderProps> = ({
           </>
         )}
       </div>
+
+      <CoverSelectionModal
+        isOpen={coverSelectionOpen}
+        onClose={() => setCoverSelectionOpen(false)}
+        onDeviceUpload={onImageUpload}
+        onTemplateSelect={onTemplateSelect}
+      />
     </div>
   );
 };

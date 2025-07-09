@@ -18,6 +18,7 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   const [imageLoading, setImageLoading] = useState(true);
   const [cachedSrc, setCachedSrc] = useState<string | null>(null);
   const isMountedRef = useRef(true);
+  const cacheAttemptedRef = useRef(new Set<string>());
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -35,17 +36,33 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
         return;
       }
 
-      // Para URLs locais (blob: ou data:), usar diretamente
-      if (src.startsWith('blob:') || src.startsWith('data:')) {
-        setCachedSrc(src);
-        setImageLoading(false);
+      // Reset states quando src muda
+      setImageError(false);
+      setImageLoading(true);
+      setCachedSrc(null);
+
+      // Para URLs locais (blob:, data:, ou assets locais), usar diretamente
+      if (src.startsWith('blob:') || src.startsWith('data:') || src.startsWith('/lovable-uploads/')) {
+        if (isMountedRef.current) {
+          setCachedSrc(src);
+          setImageLoading(false);
+        }
+        return;
+      }
+
+      // Evitar múltiplas tentativas de cache para a mesma URL
+      const cacheKey = `img_cache_${btoa(src).replace(/[^a-zA-Z0-9]/g, '').slice(0, 50)}`;
+      
+      if (cacheAttemptedRef.current.has(src)) {
+        // Se já tentamos cachear esta URL, usar diretamente
+        if (isMountedRef.current) {
+          setCachedSrc(src);
+          setImageLoading(false);
+        }
         return;
       }
 
       try {
-        // Gerar chave única baseada na URL completa
-        const cacheKey = `img_cache_${btoa(src).replace(/[^a-zA-Z0-9]/g, '').slice(0, 50)}`;
-        
         // Verificar cache local primeiro
         try {
           const cached = localStorage.getItem(cacheKey);
@@ -60,6 +77,9 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
         } catch (storageError) {
           console.warn('localStorage read error:', storageError);
         }
+
+        // Marcar como tentado para evitar loops
+        cacheAttemptedRef.current.add(src);
 
         // Se não tem cache, carregar e cachear
         console.log('Loading and caching image:', src);
@@ -89,26 +109,16 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
           
           // Salvar no cache com tratamento de erros
           try {
-            localStorage.setItem(cacheKey, dataUrl);
-            console.log('Image cached successfully:', src);
-          } catch (e) {
-            console.warn('Cache storage full, clearing old entries');
-            // Limpar cache antigo se necessário
-            try {
-              const keys = Object.keys(localStorage).filter(k => k.startsWith('img_cache_'));
-              // Remover metade das entradas mais antigas
-              keys.slice(0, Math.floor(keys.length / 2)).forEach(k => {
-                try {
-                  localStorage.removeItem(k);
-                } catch (removeError) {
-                  console.warn('Error removing cache key:', k);
-                }
-              });
-              // Tentar salvar novamente
+            // Verificar se o tamanho é razoável (< 5MB base64)
+            if (dataUrl.length < 5 * 1024 * 1024) {
               localStorage.setItem(cacheKey, dataUrl);
-            } catch (cleanupError) {
-              console.warn('Cache cleanup failed:', cleanupError);
+              console.log('Image cached successfully:', src);
+            } else {
+              console.warn('Image too large for cache:', src);
             }
+          } catch (e) {
+            console.warn('Cache storage full or error, using direct URL:', e);
+            // Se não conseguir cachear, usar a URL original
           }
           
           if (isMountedRef.current) {
@@ -120,7 +130,8 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
         reader.onerror = () => {
           console.error('Error reading image blob for:', src);
           if (isMountedRef.current) {
-            setImageError(true);
+            // Fallback para URL original se não conseguir processar
+            setCachedSrc(src);
             setImageLoading(false);
           }
         };
@@ -130,17 +141,13 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
       } catch (error) {
         console.error('Error loading image:', src, error);
         if (isMountedRef.current) {
-          setImageError(true);
+          // Fallback para URL original em caso de erro
+          setCachedSrc(src);
           setImageLoading(false);
         }
       }
     };
 
-    // Reset states quando src muda
-    setImageError(false);
-    setImageLoading(true);
-    setCachedSrc(null);
-    
     loadAndCacheImage();
   }, [src]); // Dependência apenas do src para garantir que cada URL seja tratada individualmente
 

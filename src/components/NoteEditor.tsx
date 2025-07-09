@@ -13,6 +13,7 @@ import { COVER_IMAGE_CONFIG } from '@/utils/imageProcessor';
 import { useLocalCache } from '@/hooks/useLocalCache';
 import { useNoteEditorState } from './NoteEditor/NoteEditorState';
 import { useCoverImageHandler } from './NoteEditor/useCoverImageHandler';
+import { CoverTemplate } from '@/constants/coverTemplates';
 
 interface NoteEditorProps {
   note: Note;
@@ -52,6 +53,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   const {
     loadCoverImage,
     handleImageUpload,
+    handleTemplateSelect,
     handleRemoveCover,
   } = useCoverImageHandler(
     note.id,
@@ -102,6 +104,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
           onCancel={onCancel}
           onSave={handleSave}
           onImageUpload={handleImageUpload}
+          onTemplateSelect={handleTemplateSelect}
           onShareModalOpen={() => setShareModalOpen(true)}
           onDownloadModalOpen={() => setDownloadModalOpen(true)}
         />
