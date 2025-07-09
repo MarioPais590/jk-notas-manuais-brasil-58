@@ -26,10 +26,9 @@ export function useCoverImageHandler(
     try {
       console.log('Loading cover image:', coverImageUrl);
       setCoverImage(coverImageUrl);
-      // O cache será feito automaticamente pelo ImageWithFallback
     } catch (error) {
       console.error('Error loading cover image:', error);
-      setCoverImage(coverImageUrl); // Tentar exibir mesmo assim
+      setCoverImage(coverImageUrl);
     }
   };
 
@@ -125,49 +124,56 @@ export function useCoverImageHandler(
       setUploadingCover(true);
       console.log('Selecting cover template:', template.id);
 
-      // Para templates, usamos a URL local diretamente
+      // Para templates, usar o caminho diretamente
       const templateUrl = template.path;
       
       if (isOnline) {
-        // Buscar a imagem do template e fazer upload para o Supabase
-        const response = await fetch(templateUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch template: ${response.status}`);
+        // Carregar a imagem do template e fazer upload para o Supabase
+        try {
+          // Usar fetch para carregar a imagem do template
+          const response = await fetch(templateUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch template: ${response.status}`);
+          }
+          
+          const blob = await response.blob();
+          
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          
+          if (userError || !user) {
+            throw new Error('Usuário não autenticado');
+          }
+          
+          const timestamp = Date.now();
+          const fileName = `${user.id}/covers/${noteId}/template-${template.id}-${timestamp}.webp`;
+
+          console.log('Uploading template cover to:', fileName);
+
+          const { data, error } = await supabase.storage
+            .from('note-attachments')
+            .upload(fileName, blob, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (error) {
+            console.error('Template cover upload error:', error);
+            throw error;
+          }
+
+          console.log('Template cover uploaded:', data);
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('note-attachments')
+            .getPublicUrl(fileName);
+
+          console.log('Template cover public URL:', publicUrl);
+          setCoverImage(publicUrl);
+        } catch (uploadError) {
+          console.warn('Failed to upload template to Supabase, using local path:', uploadError);
+          // Fallback: usar URL do template localmente
+          setCoverImage(templateUrl);
         }
-        
-        const blob = await response.blob();
-        
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError || !user) {
-          throw new Error('Usuário não autenticado');
-        }
-        
-        const timestamp = Date.now();
-        const fileName = `${user.id}/covers/${noteId}/template-${template.id}-${timestamp}.webp`;
-
-        console.log('Uploading template cover to:', fileName);
-
-        const { data, error } = await supabase.storage
-          .from('note-attachments')
-          .upload(fileName, blob, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (error) {
-          console.error('Template cover upload error:', error);
-          throw error;
-        }
-
-        console.log('Template cover uploaded:', data);
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('note-attachments')
-          .getPublicUrl(fileName);
-
-        console.log('Template cover public URL:', publicUrl);
-        setCoverImage(publicUrl);
       } else {
         // Modo offline: usar URL do template diretamente
         setCoverImage(templateUrl);

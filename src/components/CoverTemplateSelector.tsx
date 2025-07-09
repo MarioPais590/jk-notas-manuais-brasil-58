@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { COVER_TEMPLATES, CoverTemplate } from '@/constants/coverTemplates';
+import { COVER_TEMPLATES, CoverTemplate, preloadCoverTemplates } from '@/constants/coverTemplates';
 import ImageWithFallback from './ImageWithFallback';
 
 interface CoverTemplateSelectorProps {
@@ -17,6 +17,13 @@ const CoverTemplateSelector: React.FC<CoverTemplateSelectorProps> = ({
   onClose,
   onSelectTemplate,
 }) => {
+  // Pré-carregar templates quando o componente monta
+  useEffect(() => {
+    if (isOpen) {
+      preloadCoverTemplates();
+    }
+  }, [isOpen]);
+
   const handleTemplateSelect = (template: CoverTemplate) => {
     onSelectTemplate(template);
     onClose();
@@ -43,7 +50,7 @@ const CoverTemplateSelector: React.FC<CoverTemplateSelectorProps> = ({
                       src={template.thumbnail}
                       alt={template.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                      fallbackText="Carregando..."
+                      fallbackText={template.name}
                     />
                   </div>
                   

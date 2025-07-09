@@ -7,75 +7,76 @@ export interface CoverTemplate {
   category?: string;
 }
 
+// Templates usando caminhos relativos que funcionam melhor no PWA
 export const COVER_TEMPLATES: CoverTemplate[] = [
   {
     id: 'template-1',
     name: 'Abstrato Azul',
-    path: '/lovable-uploads/template-1.webp',
-    thumbnail: '/lovable-uploads/template-1.webp',
+    path: './template-1.webp',
+    thumbnail: './template-1.webp',
     category: 'abstract'
   },
   {
     id: 'template-2',
     name: 'Natureza Verde',
-    path: '/lovable-uploads/template-2.webp',
-    thumbnail: '/lovable-uploads/template-2.webp',
+    path: './template-2.webp',
+    thumbnail: './template-2.webp',
     category: 'nature'
   },
   {
     id: 'template-3',
     name: 'Geométrico Rosa',
-    path: '/lovable-uploads/template-3.webp',
-    thumbnail: '/lovable-uploads/template-3.webp',
+    path: './template-3.webp',
+    thumbnail: './template-3.webp',
     category: 'geometric'
   },
   {
     id: 'template-4',
     name: 'Minimalista',
-    path: '/lovable-uploads/template-4.webp',
-    thumbnail: '/lovable-uploads/template-4.webp',
+    path: './template-4.webp',
+    thumbnail: './template-4.webp',
     category: 'minimal'
   },
   {
     id: 'template-5',
     name: 'Gradiente Roxo',
-    path: '/lovable-uploads/template-5.webp',
-    thumbnail: '/lovable-uploads/template-5.webp',
+    path: './template-5.webp',
+    thumbnail: './template-5.webp',
     category: 'gradient'
   },
   {
     id: 'template-6',
     name: 'Textura Dourada',
-    path: '/lovable-uploads/template-6.webp',
-    thumbnail: '/lovable-uploads/template-6.webp',
+    path: './template-6.webp',
+    thumbnail: './template-6.webp',
     category: 'texture'
   },
   {
     id: 'template-7',
     name: 'Ondas Azuis',
-    path: '/lovable-uploads/template-7.webp',
-    thumbnail: '/lovable-uploads/template-7.webp',
+    path: './template-7.webp',
+    thumbnail: './template-7.webp',
     category: 'abstract'
   },
   {
     id: 'template-8',
     name: 'Floresta',
-    path: '/lovable-uploads/template-8.webp',
-    thumbnail: '/lovable-uploads/template-8.webp',
+    path: './template-8.webp',
+    thumbnail: './template-8.webp',
     category: 'nature'
   },
   {
     id: 'template-9',
     name: 'Cristais',
-    path: '/lovable-uploads/template-9.webp',
-    thumbnail: '/lovable-uploads/template-9.webp',
+    path: './template-9.webp',
+    thumbnail: './template-9.webp',
     category: 'geometric'
   },
   {
     id: 'template-10',
     name: 'Oceano',
-    path: '/lovable-uploads/template-10.webp',
-    thumbnail: '/lovable-uploads/template-10.webp',
+    path: './template-10.webp',
+    thumbnail: './template-10.webp',
     category: 'nature'
   }
 ];
@@ -86,4 +87,15 @@ export const getCoverTemplate = (id: string): CoverTemplate | undefined => {
 
 export const getCoverTemplatesByCategory = (category: string): CoverTemplate[] => {
   return COVER_TEMPLATES.filter(template => template.category === category);
+};
+
+// Função para pré-carregar templates de forma otimizada
+export const preloadCoverTemplates = () => {
+  if (typeof window === 'undefined') return;
+  
+  COVER_TEMPLATES.forEach(template => {
+    const img = new Image();
+    img.src = template.path;
+    // Não adicionamos ao DOM, apenas pré-carregamos na memória
+  });
 };
