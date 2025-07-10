@@ -20,9 +20,7 @@ export default defineConfig(({ mode }) => ({
       includeAssets: [
         'favicon.ico', 
         'apple-touch-icon.png', 
-        'mask-icon.svg',
-        // Incluir templates de capa para cache offline
-        'lovable-uploads/*.webp'
+        'mask-icon.svg'
       ],
       manifest: {
         name: 'Notas JK - Aplicativo de Notas',
@@ -101,7 +99,7 @@ export default defineConfig(({ mode }) => ({
               }
             }
           },
-          // Cache específico para templates de capa internos
+          // Cache específico para templates de capa internos do Lovable
           {
             urlPattern: /\/lovable-uploads\/.*\.webp$/i,
             handler: 'CacheFirst',
@@ -113,7 +111,7 @@ export default defineConfig(({ mode }) => ({
               }
             }
           },
-          // Cache para imagens do Supabase Storage
+          // Cache para imagens do Supabase Storage  
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*/i,
             handler: 'CacheFirst',

@@ -122,29 +122,28 @@ export function useCoverImageHandler(
   const handleTemplateSelect = async (template: CoverTemplate) => {
     try {
       setUploadingCover(true);
-      console.log('Selecting cover template:', template.id);
+      console.log('Selecting cover template:', template.id, template.name);
 
-      // Para templates internos (Lovable uploads), usar URL diretamente - otimizado
+      // Para templates internos do Lovable, usar URL diretamente - otimizado
       const templateUrl = template.path;
       
-      // Templates internos não precisam ser re-uploadados para o Supabase
-      // Eles já estão disponíveis via Lovable e serão cacheados automaticamente
+      // Templates do Lovable não precisam ser re-uploadados
+      // Eles já estão disponíveis via Lovable e serão cacheados automaticamente pelo PWA
       if (templateUrl.startsWith('/lovable-uploads/')) {
-        console.log('Using internal template directly:', templateUrl);
+        console.log('Using internal Lovable template directly:', templateUrl);
         setCoverImage(templateUrl);
         
         toast({
           title: "Modelo aplicado",
-          description: `O modelo "${template.name}" foi aplicado como capa da nota.`,
+          description: `O template "${template.name}" foi aplicado como capa da nota.`,
         });
         
         setUploadingCover(false);
         return;
       }
       
-      // Para outros templates, manter lógica existente de upload
+      // Para outros templates externos, manter lógica de upload
       if (isOnline) {
-        // Tentar fazer upload do template para o Supabase para salvar permanentemente
         try {
           const response = await fetch(templateUrl);
           if (!response.ok) {
@@ -202,7 +201,7 @@ export function useCoverImageHandler(
       
       toast({
         title: "Modelo aplicado",
-        description: `O modelo "${template.name}" foi aplicado como capa da nota.`,
+        description: `O template "${template.name}" foi aplicado como capa da nota.`,
       });
     } catch (error) {
       console.error('Error selecting template:', error);

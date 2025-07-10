@@ -28,7 +28,7 @@ const CoverTemplateSelector: React.FC<CoverTemplateSelectorProps> = ({
         <DialogHeader>
           <DialogTitle>Escolher Modelo de Capa</DialogTitle>
           <DialogDescription id="template-selector-description">
-            Selecione um modelo de capa para sua nota
+            Selecione um dos 10 modelos de capa disponíveis para sua nota
           </DialogDescription>
         </DialogHeader>
         
@@ -44,7 +44,7 @@ const CoverTemplateSelector: React.FC<CoverTemplateSelectorProps> = ({
                   <div className="aspect-[17/7] bg-muted">
                     <ImageWithFallback
                       src={template.thumbnail}
-                      alt={template.name}
+                      alt={`Template ${template.name}`}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                       fallbackText={template.name}
                     />
@@ -59,7 +59,7 @@ const CoverTemplateSelector: React.FC<CoverTemplateSelectorProps> = ({
                   </div>
                 </div>
                 
-                <p className="text-xs text-center mt-2 text-muted-foreground group-hover:text-foreground transition-colors">
+                <p className="text-xs text-center mt-2 text-muted-foreground group-hover:text-foreground transition-colors truncate">
                   {template.name}
                 </p>
               </div>

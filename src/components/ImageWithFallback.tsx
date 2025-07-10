@@ -39,7 +39,7 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
       setImageLoading(true);
       setCachedSrc(null);
 
-      // Para URLs do Lovable (templates internos), carregar diretamente com otimização
+      // Para URLs do Lovable (templates internos), carregar diretamente
       if (src.startsWith('/lovable-uploads/')) {
         console.log('Loading template image:', src);
         if (isMountedRef.current) {
@@ -85,7 +85,7 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
             return;
           }
         } catch (storageError) {
-          // Se localStorage está cheio, limpar cache antigo automaticamente
+          // Se localStorage está cheio, limpar cache automaticamente
           console.warn('Cache storage full, cleaning automatically:', storageError);
           cleanOldCacheEntries();
         }
@@ -208,7 +208,7 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
               setImageLoading(false);
             }
           }}
-          onError={() => {
+          onError={(e) => {
             console.error('Image render failed for:', src);
             if (isMountedRef.current) {
               setImageError(true);
