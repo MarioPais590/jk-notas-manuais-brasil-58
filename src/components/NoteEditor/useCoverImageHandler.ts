@@ -124,9 +124,25 @@ export function useCoverImageHandler(
       setUploadingCover(true);
       console.log('Selecting cover template:', template.id);
 
-      // Usar URL do template diretamente para garantir disponibilidade
+      // Para templates internos (Lovable uploads), usar URL diretamente - otimizado
       const templateUrl = template.path;
       
+      // Templates internos não precisam ser re-uploadados para o Supabase
+      // Eles já estão disponíveis via Lovable e serão cacheados automaticamente
+      if (templateUrl.startsWith('/lovable-uploads/')) {
+        console.log('Using internal template directly:', templateUrl);
+        setCoverImage(templateUrl);
+        
+        toast({
+          title: "Modelo aplicado",
+          description: `O modelo "${template.name}" foi aplicado como capa da nota.`,
+        });
+        
+        setUploadingCover(false);
+        return;
+      }
+      
+      // Para outros templates, manter lógica existente de upload
       if (isOnline) {
         // Tentar fazer upload do template para o Supabase para salvar permanentemente
         try {

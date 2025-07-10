@@ -17,7 +17,13 @@ export default defineConfig(({ mode }) => ({
     componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: [
+        'favicon.ico', 
+        'apple-touch-icon.png', 
+        'mask-icon.svg',
+        // Incluir templates de capa para cache offline
+        'lovable-uploads/*.webp'
+      ],
       manifest: {
         name: 'Notas JK - Aplicativo de Notas',
         short_name: 'Notas JK',
@@ -71,7 +77,7 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,webp}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -92,6 +98,18 @@ export default defineConfig(({ mode }) => ({
               expiration: {
                 maxEntries: 10,
                 maxAgeSeconds: 60 * 60 * 24 * 365
+              }
+            }
+          },
+          // Cache específico para templates de capa internos
+          {
+            urlPattern: /\/lovable-uploads\/.*\.webp$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'cover-templates-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 * 90 // 90 dias
               }
             }
           },
