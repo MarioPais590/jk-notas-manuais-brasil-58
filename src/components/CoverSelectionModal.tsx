@@ -61,8 +61,8 @@ const CoverSelectionModal: React.FC<CoverSelectionModalProps> = ({
               onClick={() => setShowTemplateSelector(true)}
             >
               <Palette className="h-6 w-6" />
-              <span>Escolher um Modelo Pronto</span>
-              <span className="text-xs text-muted-foreground">10 modelos profissionais</span>
+              <span>Escolher um Modelo</span>
+              <span className="text-xs text-muted-foreground">10 modelos disponíveis</span>
             </Button>
           </div>
           

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,27 +17,10 @@ const CoverTemplateSelector: React.FC<CoverTemplateSelectorProps> = ({
   onClose,
   onSelectTemplate,
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
   const handleTemplateSelect = (template: CoverTemplate) => {
     onSelectTemplate(template);
     onClose();
   };
-
-  const categories = ['all', 'abstract', 'nature', 'geometric', 'minimal', 'gradient', 'texture'];
-  const categoryNames: Record<string, string> = {
-    all: 'Todos',
-    abstract: 'Abstrato',
-    nature: 'Natureza',
-    geometric: 'Geométrico',
-    minimal: 'Minimalista',
-    gradient: 'Gradiente',
-    texture: 'Textura'
-  };
-
-  const filteredTemplates = selectedCategory && selectedCategory !== 'all' 
-    ? COVER_TEMPLATES.filter(template => template.category === selectedCategory)
-    : COVER_TEMPLATES;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -45,27 +28,13 @@ const CoverTemplateSelector: React.FC<CoverTemplateSelectorProps> = ({
         <DialogHeader>
           <DialogTitle>Escolher Modelo de Capa</DialogTitle>
           <DialogDescription id="template-selector-description">
-            Selecione um modelo de capa profissional para sua nota
+            Selecione um modelo de capa para sua nota
           </DialogDescription>
         </DialogHeader>
         
-        {/* Filtros por categoria */}
-        <div className="flex flex-wrap gap-2 pb-4 border-b">
-          {categories.map(category => (
-            <Button
-              key={category}
-              variant={selectedCategory === category ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCategory(category)}
-            >
-              {categoryNames[category]}
-            </Button>
-          ))}
-        </div>
-        
         <ScrollArea className="h-full max-h-[50vh]">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
-            {filteredTemplates.map((template) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4">
+            {COVER_TEMPLATES.map((template) => (
               <div
                 key={template.id}
                 className="group cursor-pointer"
