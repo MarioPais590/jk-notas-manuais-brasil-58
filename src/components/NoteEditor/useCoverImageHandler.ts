@@ -124,13 +124,11 @@ export function useCoverImageHandler(
       setUploadingCover(true);
       console.log('Selecting cover template:', template.id, template.name);
 
-      // Para templates internos do Lovable, usar URL diretamente - otimizado
+      // Para templates do Supabase Storage, usar URL diretamente
       const templateUrl = template.path;
       
-      // Templates do Lovable não precisam ser re-uploadados
-      // Eles já estão disponíveis via Lovable e serão cacheados automaticamente pelo PWA
-      if (templateUrl.startsWith('/lovable-uploads/')) {
-        console.log('Using internal Lovable template directly:', templateUrl);
+      if (templateUrl.includes('supabase.co/storage')) {
+        console.log('Using Supabase Storage template directly:', templateUrl);
         setCoverImage(templateUrl);
         
         toast({

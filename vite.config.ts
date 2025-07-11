@@ -5,7 +5,6 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -13,120 +12,51 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: [
-        'favicon.ico', 
-        'apple-touch-icon.png', 
-        'mask-icon.svg'
-      ],
-      manifest: {
-        name: 'Notas JK - Aplicativo de Notas',
-        short_name: 'Notas JK',
-        description: 'Aplicativo de notas personalizadas desenvolvido por Mário Augusto',
-        theme_color: '#f59e0b',
-        background_color: '#ffffff',
-        display: 'standalone',
-        orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
-        icons: [
-          {
-            src: '/lovable-uploads/e28daed3-6c21-4700-a588-94fa8251a9fb.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: '/lovable-uploads/e28daed3-6c21-4700-a588-94fa8251a9fb.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: '/lovable-uploads/e28daed3-6c21-4700-a588-94fa8251a9fb.png',
-            sizes: '144x144',
-            type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: '/lovable-uploads/e28daed3-6c21-4700-a588-94fa8251a9fb.png',
-            sizes: '96x96',
-            type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: '/lovable-uploads/e28daed3-6c21-4700-a588-94fa8251a9fb.png',
-            sizes: '72x72',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ],
-        screenshots: [
-          {
-            src: '/lovable-uploads/e28daed3-6c21-4700-a588-94fa8251a9fb.png',
-            sizes: '512x512',
-            type: 'image/png',
-            form_factor: 'wide',
-            label: 'Notas JK - Tela Principal'
-          }
-        ]
-      },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,webp}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            urlPattern: /^https:\/\/pedsmvjutwiwrjnqcymo\.supabase\.co\/storage\/.*/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'google-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365
-              }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'gstatic-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365
-              }
-            }
-          },
-          // Cache específico para templates de capa internos do Lovable
-          {
-            urlPattern: /\/lovable-uploads\/.*\.webp$/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'cover-templates-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 90 // 90 dias
-              }
-            }
-          },
-          // Cache para imagens do Supabase Storage  
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'supabase-images-cache',
+              cacheName: 'supabase-storage-cache',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
-              }
-            }
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 dias
+              },
+              cacheKeyWillBeUsed: async ({ request }) => {
+                return `${request.url}`;
+              },
+            },
+          },
+          {
+            urlPattern: /\.(webp|png|jpg|jpeg|gif|svg)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dias
+              },
+            },
+          },
+        ],
+      },
+      manifest: {
+        name: 'Notas JK',
+        short_name: 'Notas JK',
+        description: 'Aplicativo de notas pessoais',
+        theme_color: '#3B82F6',
+        icons: [
+          {
+            src: 'favicon.ico',
+            sizes: '64x64 32x32 24x24 16x16',
+            type: 'image/x-icon'
           }
         ]
-      },
-      devOptions: {
-        enabled: true
       }
     })
   ].filter(Boolean),

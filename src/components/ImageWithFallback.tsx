@@ -39,9 +39,9 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
       setImageLoading(true);
       setCachedSrc(null);
 
-      // Para URLs do Lovable (templates internos), carregar diretamente
-      if (src.startsWith('/lovable-uploads/')) {
-        console.log('Loading template image:', src);
+      // Para URLs do Supabase Storage, carregar diretamente
+      if (src.includes('supabase.co/storage')) {
+        console.log('Loading Supabase Storage image:', src);
         if (isMountedRef.current) {
           setCachedSrc(src);
           setImageLoading(false);
@@ -49,7 +49,7 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
         return;
       }
 
-      // Para URLs remotas confiáveis, carregar diretamente
+      // Para URLs remotas confiáveis (Unsplash, etc), carregar diretamente
       if (src.startsWith('https://images.unsplash.com/') || src.startsWith('https://')) {
         if (isMountedRef.current) {
           setCachedSrc(src);
@@ -122,7 +122,6 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
             }
           } catch (e) {
             console.warn('Cache storage full, using image without caching:', e);
-            // Tentar limpar cache e salvar novamente
             cleanOldCacheEntries();
             try {
               localStorage.setItem(cacheKey, dataUrl);
@@ -166,8 +165,8 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
       const keys = Object.keys(localStorage);
       const cacheKeys = keys.filter(key => key.startsWith('img_cache_'));
       
-      // Remove 70% das entradas de cache mais antigas para garantir espaço
-      const keysToRemove = cacheKeys.slice(0, Math.floor(cacheKeys.length * 0.7));
+      // Remove 50% das entradas de cache mais antigas para garantir espaço
+      const keysToRemove = cacheKeys.slice(0, Math.floor(cacheKeys.length * 0.5));
       keysToRemove.forEach(key => {
         try {
           localStorage.removeItem(key);
@@ -217,9 +216,10 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
           }}
           style={{ 
             display: imageLoading ? 'none' : 'block',
-            imageRendering: 'crisp-edges'
+            imageRendering: 'auto'
           }}
           loading="lazy"
+          decoding="async"
         />
       )}
     </div>
