@@ -10,7 +10,7 @@ export interface CoverTemplate {
 const SUPABASE_URL = "https://pedsmvjutwiwrjnqcymo.supabase.co";
 const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public/templates-covers`;
 
-// Templates usando as 10 imagens reais enviadas pelo usuário
+// Templates usando as 16 imagens reais enviadas pelo usuário
 export const COVER_TEMPLATES: CoverTemplate[] = [
   {
     id: 'template-1',
@@ -71,6 +71,42 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     name: 'FESTAS JUNINAS',
     path: `${STORAGE_BASE_URL}/festas-juninas.webp`,
     thumbnail: `${STORAGE_BASE_URL}/festas-juninas.webp`
+  },
+  {
+    id: 'template-11',
+    name: 'TAREFAS',
+    path: `${STORAGE_BASE_URL}/tarefas.webp`,
+    thumbnail: `${STORAGE_BASE_URL}/tarefas.webp`
+  },
+  {
+    id: 'template-12',
+    name: 'MÚSICA',
+    path: `${STORAGE_BASE_URL}/musica.webp`,
+    thumbnail: `${STORAGE_BASE_URL}/musica.webp`
+  },
+  {
+    id: 'template-13',
+    name: 'NOMES DE FILMES',
+    path: `${STORAGE_BASE_URL}/nomes-de-filmes.webp`,
+    thumbnail: `${STORAGE_BASE_URL}/nomes-de-filmes.webp`
+  },
+  {
+    id: 'template-14',
+    name: 'LINKS CURSOS',
+    path: `${STORAGE_BASE_URL}/links-cursos.webp`,
+    thumbnail: `${STORAGE_BASE_URL}/links-cursos.webp`
+  },
+  {
+    id: 'template-15',
+    name: 'FIM DE ANO',
+    path: `${STORAGE_BASE_URL}/fim-de-ano.webp`,
+    thumbnail: `${STORAGE_BASE_URL}/fim-de-ano.webp`
+  },
+  {
+    id: 'template-16',
+    name: 'TRABALHO',
+    path: `${STORAGE_BASE_URL}/trabalho.webp`,
+    thumbnail: `${STORAGE_BASE_URL}/trabalho.webp`
   }
 ];
 

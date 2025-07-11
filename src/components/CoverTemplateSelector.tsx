@@ -28,7 +28,7 @@ const CoverTemplateSelector: React.FC<CoverTemplateSelectorProps> = ({
         <DialogHeader>
           <DialogTitle>Escolher Modelo de Capa</DialogTitle>
           <DialogDescription id="template-selector-description">
-            Selecione um dos 10 modelos de capa disponíveis para sua nota
+            Selecione um dos 16 modelos de capa disponíveis para sua nota
           </DialogDescription>
         </DialogHeader>
         

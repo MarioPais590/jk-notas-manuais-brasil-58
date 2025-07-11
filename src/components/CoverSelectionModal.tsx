@@ -62,7 +62,7 @@ const CoverSelectionModal: React.FC<CoverSelectionModalProps> = ({
             >
               <Palette className="h-6 w-6" />
               <span>Escolher um Modelo</span>
-              <span className="text-xs text-muted-foreground">10 modelos disponíveis</span>
+              <span className="text-xs text-muted-foreground">16 modelos disponíveis</span>
             </Button>
           </div>
           
