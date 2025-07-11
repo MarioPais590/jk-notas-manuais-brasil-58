@@ -127,75 +127,8 @@ export function useCoverImageHandler(
       // Para templates do Supabase Storage, usar URL diretamente
       const templateUrl = template.path;
       
-      if (templateUrl.includes('supabase.co/storage')) {
-        console.log('Using Supabase Storage template directly:', templateUrl);
-        setCoverImage(templateUrl);
-        
-        toast({
-          title: "Modelo aplicado",
-          description: `O template "${template.name}" foi aplicado como capa da nota.`,
-        });
-        
-        setUploadingCover(false);
-        return;
-      }
-      
-      // Para outros templates externos, manter lógica de upload
-      if (isOnline) {
-        try {
-          const response = await fetch(templateUrl);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch template: ${response.status}`);
-          }
-          
-          const blob = await response.blob();
-          
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          
-          if (userError || !user) {
-            throw new Error('Usuário não autenticado');
-          }
-          
-          const timestamp = Date.now();
-          const fileName = `${user.id}/covers/${noteId}/template-${template.id}-${timestamp}.jpg`;
-
-          console.log('Uploading template cover to:', fileName);
-
-          const { data, error } = await supabase.storage
-            .from('note-attachments')
-            .upload(fileName, blob, {
-              cacheControl: '3600',
-              upsert: false
-            });
-
-          if (error) {
-            console.error('Template cover upload error:', error);
-            // Fallback: usar URL do template diretamente
-            setCoverImage(templateUrl);
-          } else {
-            console.log('Template cover uploaded:', data);
-
-            const { data: { publicUrl } } = supabase.storage
-              .from('note-attachments')
-              .getPublicUrl(fileName);
-
-            console.log('Template cover public URL:', publicUrl);
-            setCoverImage(publicUrl);
-          }
-        } catch (uploadError) {
-          console.warn('Failed to upload template to Supabase, using direct URL:', uploadError);
-          setCoverImage(templateUrl);
-        }
-      } else {
-        // Modo offline: usar URL do template diretamente
-        setCoverImage(templateUrl);
-        
-        toast({
-          title: "Modo offline",
-          description: "O modelo será sincronizado quando você estiver online.",
-          variant: "destructive",
-        });
-      }
+      console.log('Using template URL directly:', templateUrl);
+      setCoverImage(templateUrl);
       
       toast({
         title: "Modelo aplicado",

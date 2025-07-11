@@ -71,7 +71,7 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
       try {
         console.log('Loading remote image:', src);
         
-        // Verificar cache com limpeza automática se lotado
+        // Verificar cache
         const cacheKey = `img_cache_${btoa(src).replace(/[^a-zA-Z0-9]/g, '').slice(0, 50)}`;
         
         try {
@@ -85,7 +85,6 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
             return;
           }
         } catch (storageError) {
-          // Se localStorage está cheio, limpar cache automaticamente
           console.warn('Cache storage full, cleaning automatically:', storageError);
           cleanOldCacheEntries();
         }
@@ -114,7 +113,7 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
         reader.onload = () => {
           const dataUrl = reader.result as string;
           
-          // Tentar salvar no cache, mas não falhar se não conseguir
+          // Tentar salvar no cache
           try {
             if (dataUrl.length < 1.5 * 1024 * 1024) { // Apenas imagens < 1.5MB
               localStorage.setItem(cacheKey, dataUrl);
@@ -123,11 +122,6 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
           } catch (e) {
             console.warn('Cache storage full, using image without caching:', e);
             cleanOldCacheEntries();
-            try {
-              localStorage.setItem(cacheKey, dataUrl);
-            } catch (e2) {
-              console.warn('Unable to cache even after cleanup:', e2);
-            }
           }
           
           if (isMountedRef.current) {
@@ -159,13 +153,13 @@ const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
     loadImage();
   }, [src]);
 
-  // Função para limpar entradas antigas do cache automaticamente
+  // Função para limpar entradas antigas do cache
   const cleanOldCacheEntries = () => {
     try {
       const keys = Object.keys(localStorage);
       const cacheKeys = keys.filter(key => key.startsWith('img_cache_'));
       
-      // Remove 50% das entradas de cache mais antigas para garantir espaço
+      // Remove 50% das entradas mais antigas
       const keysToRemove = cacheKeys.slice(0, Math.floor(cacheKeys.length * 0.5));
       keysToRemove.forEach(key => {
         try {
